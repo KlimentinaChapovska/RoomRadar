@@ -37,3 +37,6 @@ _site/
 *.html
 
 .vercel
+
+.vercel
+.env*

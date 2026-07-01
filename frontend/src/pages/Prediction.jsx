@@ -19,11 +19,9 @@ function RiskGauge({ probability }) {
   return (
     <div className="risk-gauge-wrap" role="img" aria-label={`Cancellation probability: ${(pct * 100).toFixed(1)}%`}>
       <svg viewBox="0 0 220 130" aria-hidden="true">
-        {/* Background arc */}
         <path d={`M ${startX} ${cy} A ${r} ${r} 0 0 1 ${endX} ${cy}`} fill="none" stroke="#EEE6DE" strokeWidth="14" strokeLinecap="round" />
-        {/* Zone arcs */}
         {[
-          { from: 0,   to: 0.30, c: '#4CAF50' },
+          { from: 0,    to: 0.30, c: '#4CAF50' },
           { from: 0.30, to: 0.60, c: '#F59E0B' },
           { from: 0.60, to: 1.00, c: '#EF4444' },
         ].map(({ from, to, c }) => {
@@ -37,19 +35,15 @@ function RiskGauge({ probability }) {
               fill="none" stroke={c} strokeWidth="14" strokeLinecap="round" opacity=".25" />
           );
         })}
-        {/* Active arc */}
         {pct > 0 && (
           <path d={`M ${startX} ${cy} A ${r} ${r} 0 0 1 ${nx} ${ny}`}
             fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" />
         )}
-        {/* Needle */}
         <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={color} strokeWidth="3" strokeLinecap="round" />
         <circle cx={cx} cy={cy} r="6" fill={color} />
-        {/* Labels */}
         <text x={startX - 4} y={cy + 18} fontSize="10" fill="#AE9080" textAnchor="middle">0%</text>
         <text x={cx}         y={cy - r - 8} fontSize="10" fill="#AE9080" textAnchor="middle">50%</text>
         <text x={endX + 4}   y={cy + 18} fontSize="10" fill="#AE9080" textAnchor="middle">100%</text>
-        {/* Probability text */}
         <text x={cx} y={cy + 28} fontSize="22" fontWeight="700" fill={color} textAnchor="middle"
           fontFamily="'Playfair Display', serif">
           {(pct * 100).toFixed(1)}%
@@ -79,35 +73,74 @@ const DEFAULTS = {
   no_of_special_requests:               '',
 };
 
+/* ── Validation ─────────────────────────────────────────────────────────── */
+export function validateBookingForm(form, checkIn, checkOut, nights) {
+  const errs = {};
+
+  if (checkIn === '')  errs.checkIn  = 'This field is required.';
+  if (checkOut === '') errs.checkOut = 'This field is required.';
+  else if (checkIn && nights.total === 0) errs.checkOut = 'Check-out must be after check-in.';
+
+  if (form.no_of_adults === '')           errs.no_of_adults = 'This field is required.';
+  else if (Number(form.no_of_adults) < 1) errs.no_of_adults = 'Value must be at least 1.';
+
+  if (form.no_of_children === '')               errs.no_of_children = 'This field is required.';
+  if (form.no_of_special_requests === '')        errs.no_of_special_requests = 'This field is required.';
+  if (!form.type_of_meal_plan)                   errs.type_of_meal_plan = 'Please select a meal plan.';
+  if (!form.room_type_reserved)                  errs.room_type_reserved = 'Please select a room type.';
+  if (!form.market_segment_type)                 errs.market_segment_type = 'Please select a market segment.';
+  if (form.required_car_parking_space === '')    errs.required_car_parking_space = 'This field is required.';
+  if (form.lead_time === '')                     errs.lead_time = 'This field is required.';
+  if (form.current_room_price === '')            errs.current_room_price = 'This field is required.';
+  if (form.repeated_guest === '')                errs.repeated_guest = 'This field is required.';
+  if (form.no_of_previous_cancellations === '')  errs.no_of_previous_cancellations = 'This field is required.';
+  if (form.no_of_previous_bookings_not_canceled === '') errs.no_of_previous_bookings_not_canceled = 'This field is required.';
+
+  return errs;
+}
+
 /* ── Field helpers ──────────────────────────────────────────────────────── */
 const MEAL_PLANS = ['Meal Plan 1', 'Meal Plan 2', 'Meal Plan 3', 'Not Selected'];
 const ROOM_TYPES = ['Room_Type 1', 'Room_Type 2', 'Room_Type 3', 'Room_Type 4', 'Room_Type 5', 'Room_Type 6', 'Room_Type 7'];
 const SEGMENTS   = ['Online', 'Offline', 'Corporate', 'Complementary', 'Aviation'];
 
-function Field({ label, hint, children, id }) {
+function Field({ label, hint, children, id, error }) {
   return (
     <div className="form-group">
       <label className="form-label" htmlFor={id}>{label}</label>
       {children}
-      {hint && <span className="form-hint">{hint}</span>}
+      {error
+        ? <span className="form-field-error" role="alert" id={`${id}-err`}>{error}</span>
+        : hint && <span className="form-hint">{hint}</span>
+      }
     </div>
   );
 }
 
-function NumInput({ id, value, onChange, min, max, step = 1, placeholder }) {
+function NumInput({ id, value, onChange, min, max, step = 1, placeholder, hasError }) {
   return (
     <input
-      id={id} type="number" className="form-control"
+      id={id} type="number"
+      className={`form-control${hasError ? ' form-control--error' : ''}`}
       value={value} min={min} max={max} step={step}
       placeholder={placeholder}
+      aria-invalid={hasError ? 'true' : undefined}
+      aria-describedby={hasError ? `${id}-err` : undefined}
       onChange={e => onChange(e.target.value)}
     />
   );
 }
 
-function Select({ id, value, onChange, options, placeholder }) {
+function Select({ id, value, onChange, options, placeholder, hasError }) {
   return (
-    <select id={id} className="form-control" value={value} onChange={e => onChange(e.target.value)}>
+    <select
+      id={id}
+      className={`form-control${hasError ? ' form-control--error' : ''}`}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      aria-invalid={hasError ? 'true' : undefined}
+      aria-describedby={hasError ? `${id}-err` : undefined}
+    >
       <option value="">{placeholder ?? '— select —'}</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
     </select>
@@ -139,45 +172,51 @@ export default function Prediction() {
   const [form, setForm]           = useState({ ...DEFAULTS });
   const [checkIn, setCheckIn]     = useState(DEFAULT_CHECKIN);
   const [checkOut, setCheckOut]   = useState(DEFAULT_CHECKOUT);
-  const [dateError, setDateError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [result, setResult]       = useState(null);
   const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState(null);
-  const [errorStatus, setErrorStatus] = useState(null);
+  const [apiError, setApiError]   = useState(null);
+  const [apiErrorStatus, setApiErrorStatus] = useState(null);
   const uid = useId();
 
-  const nights     = calcNights(checkIn, checkOut);
-  const validDates = checkIn && checkOut && nights.total > 0;
+  const nights = calcNights(checkIn, checkOut);
 
-  const set = (key) => (val) => setForm(f => ({ ...f, [key]: val }));
+  const clearErr = (key) => setFieldErrors(e => ({ ...e, [key]: null }));
+
+  const set = (key) => (val) => {
+    setForm(f => ({ ...f, [key]: val }));
+    clearErr(key);
+  };
 
   const handleCheckIn = (val) => {
     setCheckIn(val);
+    clearErr('checkIn');
     if (val && checkOut && new Date(val + 'T00:00:00') >= new Date(checkOut + 'T00:00:00')) {
-      setDateError('Check-out must be after check-in.');
+      setFieldErrors(e => ({ ...e, checkOut: 'Check-out must be after check-in.' }));
     } else {
-      setDateError(null);
+      clearErr('checkOut');
     }
   };
 
   const handleCheckOut = (val) => {
     setCheckOut(val);
+    clearErr('checkOut');
     if (checkIn && val && new Date(checkIn + 'T00:00:00') >= new Date(val + 'T00:00:00')) {
-      setDateError('Check-out must be after check-in.');
-    } else {
-      setDateError(null);
+      setFieldErrors(e => ({ ...e, checkOut: 'Check-out must be after check-in.' }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validDates) {
-      setDateError('Please select a valid check-in and check-out date.');
+    const errs = validateBookingForm(form, checkIn, checkOut, nights);
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
       return;
     }
+    setFieldErrors({});
     setLoading(true);
-    setError(null);
-    setErrorStatus(null);
+    setApiError(null);
+    setApiErrorStatus(null);
     setResult(null);
     try {
       const n = (key) => Number(form[key]);
@@ -201,8 +240,8 @@ export default function Prediction() {
       const data = await api.predict(payload);
       setResult(data);
     } catch (err) {
-      setError(err.message ?? 'Prediction failed. Is the backend running?');
-      setErrorStatus(err.status ?? null);
+      setApiError(err.message ?? 'Prediction failed. Is the backend running?');
+      setApiErrorStatus(err.status ?? null);
     } finally {
       setLoading(false);
     }
@@ -212,11 +251,13 @@ export default function Prediction() {
     setForm({ ...DEFAULTS });
     setCheckIn(DEFAULT_CHECKIN);
     setCheckOut(DEFAULT_CHECKOUT);
-    setDateError(null);
+    setFieldErrors({});
     setResult(null);
-    setError(null);
-    setErrorStatus(null);
+    setApiError(null);
+    setApiErrorStatus(null);
   };
+
+  const fe = fieldErrors;
 
   return (
     <ErrorBoundary>
@@ -242,14 +283,14 @@ export default function Prediction() {
               <div style={{ marginBottom: '2rem' }}>
                 <div className="form-section-title">Guests</div>
                 <div className="form-grid-3">
-                  <Field label="Adults" id={`${uid}-adults`}>
-                    <NumInput id={`${uid}-adults`} value={form.no_of_adults} onChange={set('no_of_adults')} min={1} max={4} placeholder="e.g. 2" />
+                  <Field label="Adults" id={`${uid}-adults`} error={fe.no_of_adults}>
+                    <NumInput id={`${uid}-adults`} value={form.no_of_adults} onChange={set('no_of_adults')} min={1} max={4} placeholder="e.g. 2" hasError={!!fe.no_of_adults} />
                   </Field>
-                  <Field label="Children" id={`${uid}-children`}>
-                    <NumInput id={`${uid}-children`} value={form.no_of_children} onChange={set('no_of_children')} min={0} max={10} placeholder="e.g. 0" />
+                  <Field label="Children" id={`${uid}-children`} error={fe.no_of_children}>
+                    <NumInput id={`${uid}-children`} value={form.no_of_children} onChange={set('no_of_children')} min={0} max={10} placeholder="e.g. 0" hasError={!!fe.no_of_children} />
                   </Field>
-                  <Field label="Special requests" id={`${uid}-special`}>
-                    <NumInput id={`${uid}-special`} value={form.no_of_special_requests} onChange={set('no_of_special_requests')} min={0} max={5} placeholder="e.g. 0" />
+                  <Field label="Special requests" id={`${uid}-special`} error={fe.no_of_special_requests}>
+                    <NumInput id={`${uid}-special`} value={form.no_of_special_requests} onChange={set('no_of_special_requests')} min={0} max={5} placeholder="e.g. 0" hasError={!!fe.no_of_special_requests} />
                   </Field>
                 </div>
               </div>
@@ -258,39 +299,37 @@ export default function Prediction() {
               <div style={{ marginBottom: '2rem' }}>
                 <div className="form-section-title">Stay Dates &amp; Lead Time</div>
                 <div className="form-grid-2">
-                  <Field label="Check-in date" id={`${uid}-checkin`}>
+                  <Field label="Check-in date" id={`${uid}-checkin`} error={fe.checkIn}>
                     <input
-                      id={`${uid}-checkin`} type="date" className="form-control"
+                      id={`${uid}-checkin`} type="date"
+                      className={`form-control${fe.checkIn ? ' form-control--error' : ''}`}
                       value={checkIn}
                       onChange={e => handleCheckIn(e.target.value)}
-                      required
+                      aria-invalid={fe.checkIn ? 'true' : undefined}
+                      aria-describedby={fe.checkIn ? `${uid}-checkin-err` : undefined}
                     />
                   </Field>
-                  <Field label="Check-out date" id={`${uid}-checkout`}>
+                  <Field label="Check-out date" id={`${uid}-checkout`} error={fe.checkOut}>
                     <input
-                      id={`${uid}-checkout`} type="date" className="form-control"
+                      id={`${uid}-checkout`} type="date"
+                      className={`form-control${fe.checkOut ? ' form-control--error' : ''}`}
                       value={checkOut}
                       min={checkIn || undefined}
                       onChange={e => handleCheckOut(e.target.value)}
-                      required
+                      aria-invalid={fe.checkOut ? 'true' : undefined}
+                      aria-describedby={fe.checkOut ? `${uid}-checkout-err` : undefined}
                     />
                   </Field>
                 </div>
 
-                {dateError && (
-                  <div className="alert alert-error" style={{ marginTop: '.5rem', padding: '.5rem .75rem', fontSize: '.875rem' }} role="alert">
-                    {dateError}
-                  </div>
-                )}
-
                 <NightsBreakdown nights={nights} />
 
                 <div className="form-grid-2" style={{ marginTop: '1.25rem' }}>
-                  <Field label="Lead time (days)" id={`${uid}-lead`} hint="Days between booking and arrival">
-                    <NumInput id={`${uid}-lead`} value={form.lead_time} onChange={set('lead_time')} min={0} placeholder="e.g. 45" />
+                  <Field label="Lead time (days)" id={`${uid}-lead`} hint="Days between booking and arrival" error={fe.lead_time}>
+                    <NumInput id={`${uid}-lead`} value={form.lead_time} onChange={set('lead_time')} min={0} placeholder="e.g. 45" hasError={!!fe.lead_time} />
                   </Field>
-                  <Field label="Current room price" id={`${uid}-price`} hint="Price units — used for comparison">
-                    <NumInput id={`${uid}-price`} value={form.current_room_price} onChange={set('current_room_price')} min={0} step={0.01} placeholder="e.g. 100" />
+                  <Field label="Current room price" id={`${uid}-price`} hint="Price units — used for comparison" error={fe.current_room_price}>
+                    <NumInput id={`${uid}-price`} value={form.current_room_price} onChange={set('current_room_price')} min={0} step={0.01} placeholder="e.g. 100" hasError={!!fe.current_room_price} />
                   </Field>
                 </div>
               </div>
@@ -299,17 +338,17 @@ export default function Prediction() {
               <div style={{ marginBottom: '2rem' }}>
                 <div className="form-section-title">Booking Details</div>
                 <div className="form-grid-2">
-                  <Field label="Meal plan" id={`${uid}-meal`}>
-                    <Select id={`${uid}-meal`} value={form.type_of_meal_plan} onChange={set('type_of_meal_plan')} options={MEAL_PLANS} placeholder="— select meal plan —" />
+                  <Field label="Meal plan" id={`${uid}-meal`} error={fe.type_of_meal_plan}>
+                    <Select id={`${uid}-meal`} value={form.type_of_meal_plan} onChange={set('type_of_meal_plan')} options={MEAL_PLANS} placeholder="— select meal plan —" hasError={!!fe.type_of_meal_plan} />
                   </Field>
-                  <Field label="Room type" id={`${uid}-room`}>
-                    <Select id={`${uid}-room`} value={form.room_type_reserved} onChange={set('room_type_reserved')} options={ROOM_TYPES} placeholder="— select room type —" />
+                  <Field label="Room type" id={`${uid}-room`} error={fe.room_type_reserved}>
+                    <Select id={`${uid}-room`} value={form.room_type_reserved} onChange={set('room_type_reserved')} options={ROOM_TYPES} placeholder="— select room type —" hasError={!!fe.room_type_reserved} />
                   </Field>
-                  <Field label="Market segment" id={`${uid}-seg`}>
-                    <Select id={`${uid}-seg`} value={form.market_segment_type} onChange={set('market_segment_type')} options={SEGMENTS} placeholder="— select segment —" />
+                  <Field label="Market segment" id={`${uid}-seg`} error={fe.market_segment_type}>
+                    <Select id={`${uid}-seg`} value={form.market_segment_type} onChange={set('market_segment_type')} options={SEGMENTS} placeholder="— select segment —" hasError={!!fe.market_segment_type} />
                   </Field>
-                  <Field label="Car parking" id={`${uid}-park`}>
-                    <Select id={`${uid}-park`} value={form.required_car_parking_space} onChange={set('required_car_parking_space')} options={[0, 1]} placeholder="No / Yes (0 / 1)" />
+                  <Field label="Car parking" id={`${uid}-park`} error={fe.required_car_parking_space}>
+                    <Select id={`${uid}-park`} value={form.required_car_parking_space} onChange={set('required_car_parking_space')} options={[0, 1]} placeholder="No / Yes (0 / 1)" hasError={!!fe.required_car_parking_space} />
                   </Field>
                 </div>
               </div>
@@ -318,14 +357,14 @@ export default function Prediction() {
               <div style={{ marginBottom: '2rem' }}>
                 <div className="form-section-title">Guest History</div>
                 <div className="form-grid-3">
-                  <Field label="Repeated guest" id={`${uid}-rep`}>
-                    <Select id={`${uid}-rep`} value={form.repeated_guest} onChange={set('repeated_guest')} options={[0, 1]} placeholder="No / Yes (0 / 1)" />
+                  <Field label="Repeated guest" id={`${uid}-rep`} error={fe.repeated_guest}>
+                    <Select id={`${uid}-rep`} value={form.repeated_guest} onChange={set('repeated_guest')} options={[0, 1]} placeholder="No / Yes (0 / 1)" hasError={!!fe.repeated_guest} />
                   </Field>
-                  <Field label="Prev. cancellations" id={`${uid}-pcanc`}>
-                    <NumInput id={`${uid}-pcanc`} value={form.no_of_previous_cancellations} onChange={set('no_of_previous_cancellations')} min={0} placeholder="e.g. 0" />
+                  <Field label="Prev. cancellations" id={`${uid}-pcanc`} error={fe.no_of_previous_cancellations}>
+                    <NumInput id={`${uid}-pcanc`} value={form.no_of_previous_cancellations} onChange={set('no_of_previous_cancellations')} min={0} placeholder="e.g. 0" hasError={!!fe.no_of_previous_cancellations} />
                   </Field>
-                  <Field label="Prev. completed stays" id={`${uid}-pstay`}>
-                    <NumInput id={`${uid}-pstay`} value={form.no_of_previous_bookings_not_canceled} onChange={set('no_of_previous_bookings_not_canceled')} min={0} placeholder="e.g. 0" />
+                  <Field label="Prev. completed stays" id={`${uid}-pstay`} error={fe.no_of_previous_bookings_not_canceled}>
+                    <NumInput id={`${uid}-pstay`} value={form.no_of_previous_bookings_not_canceled} onChange={set('no_of_previous_bookings_not_canceled')} min={0} placeholder="e.g. 0" hasError={!!fe.no_of_previous_bookings_not_canceled} />
                   </Field>
                 </div>
               </div>
@@ -342,11 +381,11 @@ export default function Prediction() {
                 </button>
               </div>
 
-              {/* API error */}
-              {error && (
+              {/* API / network error only */}
+              {apiError && (
                 <div className="alert alert-error" style={{ marginTop: '1rem' }} role="alert">
-                  <strong>{errorStatus === 422 ? 'Validation error:' : 'Error:'}</strong> {error}
-                  {(!errorStatus || errorStatus >= 500) && (
+                  <strong>{apiErrorStatus === 422 ? 'Validation error:' : 'Error:'}</strong> {apiError}
+                  {(!apiErrorStatus || apiErrorStatus >= 500) && (
                     <div style={{ marginTop: '.5rem', fontSize: '.8rem' }}>
                       Make sure the backend is running and <code>VITE_API_URL</code> is set.
                     </div>
@@ -361,7 +400,6 @@ export default function Prediction() {
                 <div className="card" style={{ position: 'sticky', top: 'calc(var(--nav-h) + 1rem)' }}>
                   <h2 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Prediction Result</h2>
 
-                  {/* Risk gauge + label */}
                   <RiskGauge probability={result.cancellation_probability} />
                   <div style={{ textAlign: 'center', marginTop: '.75rem', marginBottom: '1.25rem' }}>
                     <span className={`badge ${bandCls(result.cancellation_risk_band)}`} style={{ fontSize: '.9rem', padding: '.35rem 1rem' }}>
@@ -372,7 +410,6 @@ export default function Prediction() {
                     </span>
                   </div>
 
-                  {/* Price comparison */}
                   <div className="card card-sm" style={{ background: 'var(--clr-bg-alt)', marginBottom: '1.25rem' }}>
                     <div className="price-cmp-row">
                       <div>
@@ -392,7 +429,6 @@ export default function Prediction() {
                     </p>
                   </div>
 
-                  {/* Recommendations */}
                   {result.recommendations?.length > 0 && (
                     <div style={{ marginBottom: '1.25rem' }}>
                       <h3 style={{ fontSize: '1rem', marginBottom: '.75rem' }}>Recommendations</h3>
@@ -404,7 +440,6 @@ export default function Prediction() {
                     </div>
                   )}
 
-                  {/* Meta */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.75rem', marginBottom: '.75rem' }}>
                     <div className="result-stat">
                       <div className="result-stat__label">Probability</div>

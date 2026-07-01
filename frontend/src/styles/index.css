@@ -309,6 +309,15 @@ p  { color: var(--clr-text-muted); }
   box-shadow: 0 0 0 3px rgba(200,105,74,.15);
 }
 .form-hint { font-size: .78rem; color: var(--clr-text-light); }
+.form-field-error { font-size: .78rem; color: var(--clr-danger); font-weight: 500; }
+.form-control--error {
+  border-color: var(--clr-danger);
+  background: #FFF8F8;
+}
+.form-control--error:focus {
+  border-color: var(--clr-danger);
+  box-shadow: 0 0 0 3px rgba(239,68,68,.15);
+}
 .form-section-title { font-family: var(--ff-serif); font-size: 1.05rem; color: var(--clr-brown); margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--clr-border); }
 .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
