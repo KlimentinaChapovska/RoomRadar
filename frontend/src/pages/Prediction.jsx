@@ -142,7 +142,11 @@ function Select({ id, value, onChange, options, placeholder, hasError }) {
       aria-describedby={hasError ? `${id}-err` : undefined}
     >
       <option value="">{placeholder ?? '— select —'}</option>
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
+      {options.map(o => {
+        const val = (o !== null && typeof o === 'object') ? o.value : o;
+        const lbl = (o !== null && typeof o === 'object') ? o.label : o;
+        return <option key={val} value={val}>{lbl}</option>;
+      })}
     </select>
   );
 }
@@ -358,7 +362,7 @@ export default function Prediction() {
                 <div className="form-section-title">Guest History</div>
                 <div className="form-grid-3">
                   <Field label="Repeated guest" id={`${uid}-rep`} error={fe.repeated_guest}>
-                    <Select id={`${uid}-rep`} value={form.repeated_guest} onChange={set('repeated_guest')} options={[0, 1]} placeholder="No / Yes (0 / 1)" hasError={!!fe.repeated_guest} />
+                    <Select id={`${uid}-rep`} value={form.repeated_guest} onChange={set('repeated_guest')} options={[{ label: 'No', value: 0 }, { label: 'Yes', value: 1 }]} hasError={!!fe.repeated_guest} />
                   </Field>
                   <Field label="Prev. cancellations" id={`${uid}-pcanc`} error={fe.no_of_previous_cancellations}>
                     <NumInput id={`${uid}-pcanc`} value={form.no_of_previous_cancellations} onChange={set('no_of_previous_cancellations')} min={0} placeholder="e.g. 0" hasError={!!fe.no_of_previous_cancellations} />
