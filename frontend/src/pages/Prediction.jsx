@@ -352,7 +352,7 @@ export default function Prediction() {
                     <Select id={`${uid}-seg`} value={form.market_segment_type} onChange={set('market_segment_type')} options={SEGMENTS} placeholder="— select segment —" hasError={!!fe.market_segment_type} />
                   </Field>
                   <Field label="Car parking" id={`${uid}-park`} error={fe.required_car_parking_space}>
-                    <Select id={`${uid}-park`} value={form.required_car_parking_space} onChange={set('required_car_parking_space')} options={[0, 1]} placeholder="No / Yes (0 / 1)" hasError={!!fe.required_car_parking_space} />
+                    <Select id={`${uid}-park`} value={form.required_car_parking_space} onChange={set('required_car_parking_space')} options={[{ label: 'No', value: 0 }, { label: 'Yes', value: 1 }]} hasError={!!fe.required_car_parking_space} />
                   </Field>
                 </div>
               </div>
