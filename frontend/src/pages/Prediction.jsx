@@ -268,7 +268,7 @@ export default function Prediction() {
       <div className="page-hero">
         <div className="page-hero__inner">
           <p className="page-hero__eyebrow">Live Prediction</p>
-          <h1>Predict cancellation risk &amp; room price</h1>
+          <h1>Predict cancellation risk & room price</h1>
           <p style={{ marginTop: '.75rem', color: 'var(--clr-brown-mid)', maxWidth: '58ch' }}>
             Fill in the booking details below. The API returns a calibrated cancellation
             probability, risk band, predicted room price, and actionable recommendations.
@@ -301,7 +301,7 @@ export default function Prediction() {
 
               {/* Stay */}
               <div style={{ marginBottom: '2rem' }}>
-                <div className="form-section-title">Stay Dates &amp; Lead Time</div>
+                <div className="form-section-title">Stay Dates & Lead Time</div>
                 <div className="form-grid-2">
                   <Field label="Check-in date" id={`${uid}-checkin`} error={fe.checkIn}>
                     <input
