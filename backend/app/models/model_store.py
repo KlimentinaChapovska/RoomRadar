@@ -19,8 +19,8 @@ sys.path.insert(0, str(ROOT / "ml" / "scripts"))
 
 # Register custom transformers before any joblib.load call
 from calibration_pipeline import CalibratedPipeline  # noqa: F401
-from train_classification import FeatureEngineer      # noqa: F401
-from train_regression import RegFeatureEngineer       # noqa: F401
+from transformers import FeatureEngineer              # noqa: F401
+from transformers import RegFeatureEngineer           # noqa: F401
 
 from app.utils.logger import get_logger
 
