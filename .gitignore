@@ -7,9 +7,9 @@ __pycache__/
 venv/
 .env
 
-# Models (large binary files — store with DVC or release assets)
-models/*.pkl
-models/*.joblib
+# Models — committed directly (< 2 MB total)
+# models/*.pkl
+# models/*.joblib
 
 # Logs
 logs/*.log
@@ -35,3 +35,5 @@ Thumbs.db
 # Quarto
 _site/
 *.html
+
+.vercel
