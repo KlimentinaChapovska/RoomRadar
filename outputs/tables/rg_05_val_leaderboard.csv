@@ -1,0 +1,5 @@
+,model,r2,mae,rmse
+3,XGBoost (tuned),0.7051,12.04,18.04
+2,DecisionTree(d=12),0.6225,13.46,20.41
+1,Ridge,0.5189,17.03,23.04
+0,DummyRegressor,-0.0207,24.82,33.57

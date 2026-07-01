@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+
+# Models (large binary files — store with DVC or release assets)
+models/*.pkl
+models/*.joblib
+
+# Logs
+logs/*.log
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+dist/
+.next/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright MCP artefacts
+.playwright-mcp/
+
+# Vercel
+.vercel/
+
+# Quarto
+_site/
+*.html

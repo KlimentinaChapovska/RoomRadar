@@ -1,0 +1,36 @@
+,feature,importance
+0,num__total_guests,0.12764858
+1,cat__room_type_reserved_Room_Type 6,0.111358166
+2,cat__room_type_reserved_Room_Type 1,0.106962174
+3,cat__room_type_reserved_Room_Type 7,0.068752125
+4,cat__type_of_meal_plan_Meal Plan 2,0.065250844
+5,cat__market_segment_type_Online,0.06446157
+6,num__has_children,0.043230966
+7,cat__room_type_reserved_Room_Type 4,0.035297338
+8,cat__room_type_reserved_Room_Type 5,0.034482323
+9,cat__market_segment_type_Complementary,0.03276118
+10,cat__room_type_reserved_Room_Type 2,0.026960978
+11,num__arrival_season,0.025079845
+12,num__no_of_adults,0.0248721
+13,num__no_of_children,0.021611854
+14,num__arrival_month,0.02103202
+15,cat__type_of_meal_plan_Not Selected,0.019232793
+16,num__repeated_guest,0.014451999
+17,cat__market_segment_type_Offline,0.014226778
+18,num__lead_time,0.012698275
+19,num__no_of_previous_bookings_not_canceled,0.012508017
+20,num__log_lead_time,0.011935912
+21,num__is_weekend_stay,0.011757513
+22,cat__type_of_meal_plan_Meal Plan 1,0.01115463
+23,num__required_car_parking_space,0.010312728
+24,cat__market_segment_type_Corporate,0.009484862
+25,num__total_nights,0.00901602
+26,num__no_of_weekend_nights,0.00900833
+27,num__arrival_dow,0.008382605
+28,num__no_of_week_nights,0.0074891397
+29,num__has_special_request,0.0072611636
+30,num__no_of_special_requests,0.0066152336
+31,cat__room_type_reserved_infrequent_sklearn,0.004018147
+32,cat__market_segment_type_Aviation,0.003861125
+33,num__prior_cancel_rate,0.0035597465
+34,num__no_of_previous_cancellations,0.003263006

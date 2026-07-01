@@ -1,0 +1,87 @@
+{
+  "model_name": "roomradar_cancellation_xgb_calibrated",
+  "version": "1.0.0",
+  "trained_on": "2026-06-29",
+  "positive_class": "Canceled",
+  "n_train_rows": 21742,
+  "xgb_params": {
+    "n_estimators": 500,
+    "max_depth": 7,
+    "learning_rate": 0.08,
+    "subsample": 0.9,
+    "colsample_bytree": 0.8,
+    "gamma": 0.3,
+    "reg_alpha": 0.1,
+    "reg_lambda": 3.0,
+    "min_child_weight": 1
+  },
+  "calibration_method": "isotonic",
+  "brier_uncalibrated": 0.08335,
+  "brier_calibrated": 0.07789,
+  "threshold": 0.34,
+  "risk_bands": {
+    "low": {
+      "upper_exclusive": 0.3,
+      "description": "Low cancellation risk \u2014 no immediate action required"
+    },
+    "medium": {
+      "lower_inclusive": 0.3,
+      "upper_exclusive": 0.6,
+      "description": "Medium risk \u2014 send pre-arrival confirmation"
+    },
+    "high": {
+      "lower_inclusive": 0.6,
+      "description": "High risk \u2014 request deposit or offer incentive"
+    }
+  },
+  "train_metrics": {
+    "accuracy": 0.9535,
+    "precision": 0.9033,
+    "recall": 0.9608,
+    "f1": 0.9312,
+    "roc_auc": 0.9921,
+    "brier": 0.04084
+  },
+  "val_metrics": {
+    "accuracy": 0.8871,
+    "precision": 0.8146,
+    "recall": 0.8489,
+    "f1": 0.8314,
+    "roc_auc": 0.9531,
+    "brier": 0.07789
+  },
+  "test_metrics": {
+    "accuracy": 0.8822,
+    "precision": 0.8001,
+    "recall": 0.854,
+    "f1": 0.8261,
+    "roc_auc": 0.9523,
+    "brier": 0.07915
+  },
+  "overfitting_notes": "Train F1=0.9312  Val F1=0.8314  Test F1=0.8261. Train\u2192Val gap=0.0998 \u2014 XGBoost memorises some training patterns. Gap is acceptable and stable (Val\u2192Test gap=0.0053). Regularisation (gamma=0.3, reg_lambda=3.0) was tuned to minimise this.",
+  "features_required": [
+    "no_of_adults",
+    "no_of_children",
+    "no_of_weekend_nights",
+    "no_of_week_nights",
+    "type_of_meal_plan",
+    "required_car_parking_space",
+    "room_type_reserved",
+    "lead_time",
+    "arrival_year",
+    "arrival_month",
+    "arrival_date",
+    "market_segment_type",
+    "repeated_guest",
+    "no_of_previous_cancellations",
+    "no_of_previous_bookings_not_canceled",
+    "avg_price_per_room",
+    "no_of_special_requests"
+  ],
+  "pipeline_steps": [
+    "FeatureEngineer (custom TransformerMixin)",
+    "ColumnTransformer: StandardScaler (numeric) + OHE (categorical)",
+    "XGBClassifier (tuned via RandomizedSearchCV, 30 iter, 5-fold CV)",
+    "CalibratedClassifierCV (cv='prefit', method='isotonic')"
+  ]
+}

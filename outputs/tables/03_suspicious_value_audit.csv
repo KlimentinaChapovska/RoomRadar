@@ -1,0 +1,13 @@
+,column,issue,n_rows,pct,business_note
+0,no_of_adults,zero adults,139,0.383,A hotel room with 0 adults is operationally invalid. Likely data-entry error. Consider filtering these rows before training.
+1,no_of_adults,more than 4 adults,0,0.0,Dataset max is 4; no rows found. Upper cap appears enforced.
+2,no_of_children,more than 5 children,3,0.008,Extreme values (max 10). Possible data-entry error. Verify against room capacity; may need capping.
+3,no_of_weekend_nights + no_of_week_nights,zero total nights,78,0.215,Same-day bookings are unusual for a hotel. Could be day-use rooms or entry errors. Investigate before training.
+4,avg_price_per_room,zero price,545,1.502,"Rooms priced at £0 are likely complimentary stays, staff bookings, or system errors. These should be excluded from the price regression model. For the cancellation model, keep but encode as a feature flag."
+5,avg_price_per_room,price > 500,1,0.003,Only 1 row; likely a genuine luxury booking or data error. Inspect individually.
+6,avg_price_per_room,IQR outlier (> 179.6),1069,2.947,"1,069 rows above IQR upper fence. These are real high-value bookings, not errors. Do NOT remove. Apply log-transform for the price model."
+7,lead_time,lead time > 365 days (~1 year),243,0.67,"102 rows booked more than a year ahead. Genuine for event/wedding bookings. Keep, but consider a log or sqrt transform."
+8,arrival_date,calendar-invalid date (e.g. Feb 30),37,0.102,Rows with dates that don't exist on a calendar. Likely data-entry error; drop or correct before training.
+9,arrival_year,only 2017–2018,36275,100.0,Narrow 2-year window. Model may not generalise to other years; use month + season features rather than raw year.
+10,required_car_parking_space,"value not in {0,1}",0,0.0,Should be binary. Unexpected values would be data corruption.
+11,repeated_guest,"value not in {0,1}",0,0.0,Should be binary. Unexpected values would be data corruption.

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="708" viewBox="0 0 540 708">
+<defs>
+  <marker id="ar"  markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#c0392b"/></marker>
+  <marker id="ar2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#7b241c"/></marker>
+  <marker id="ar3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#922b21"/></marker>
+</defs>
+<rect width="540" height="708" fill="white"/>
+<text x="270" y="22" text-anchor="middle" fill="#c0392b" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="bold">Predict &amp; What-If Simulator Flow</text>
+<rect x="80" y="36" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+<text x="270" y="55" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">User enters booking details</text>
+<rect x="80" y="104" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+<text x="270" y="123" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">React Frontend</text>
+<rect x="80" y="172" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+<text x="270" y="191" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">FastAPI  /predict</text>
+<rect x="80" y="240" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#922b21" stroke-width="1.5"/>
+<text x="270" y="259" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">Input Validation</text>
+<rect x="80" y="308" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#922b21" stroke-width="1.5"/>
+<text x="270" y="327" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">Data Preprocessing</text>
+<rect x="80" y="376" width="174" height="40" rx="4" fill="#fdf2f0" stroke="#922b21" stroke-width="1.5"/>
+<text x="167" y="388" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">Cancellation</text>
+<text x="167" y="402" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">Classifier</text>
+<rect x="262" y="376" width="174" height="40" rx="4" fill="#fdf2f0" stroke="#922b21" stroke-width="1.5"/>
+<text x="349" y="388" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">Room-Price</text>
+<text x="349" y="402" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">Regressor</text>
+<rect x="80" y="444" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#922b21" stroke-width="1.5"/>
+<text x="270" y="463" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">Combine Prediction Results</text>
+<rect x="80" y="512" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#922b21" stroke-width="1.5"/>
+<text x="270" y="531" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">Explanation &amp; Recommendation Service</text>
+<rect x="80" y="580" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+<text x="270" y="599" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">FastAPI returns JSON</text>
+<rect x="80" y="648" width="380" height="40" rx="4" fill="#fef0ee" stroke="#c0392b" stroke-width="1.5"/>
+<text x="270" y="667" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">React — prediction cards &amp; comparison charts</text>
+<line x1="270" y1="76" x2="270" y2="104" stroke="#c0392b" stroke-width="1.5" marker-end="url(#ar)"/>
+<line x1="270" y1="144" x2="270" y2="172" stroke="#c0392b" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="275" y="162" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">POST /predict</text>
+<line x1="270" y1="212" x2="270" y2="240" stroke="#c0392b" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="275" y="230" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">calls</text>
+<line x1="270" y1="280" x2="270" y2="308" stroke="#922b21" stroke-width="1.5" marker-end="url(#ar3)"/>
+<text x="275" y="298" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">validates → preprocesses</text>
+<path d="M 270 348 V 362" fill="none" stroke="#922b21" stroke-width="1.5"/>
+<path d="M 167 362 H 349" fill="none" stroke="#922b21" stroke-width="1.5"/>
+<line x1="167" y1="362" x2="167" y2="376" stroke="#922b21" stroke-width="1.5" marker-end="url(#ar3)"/>
+<line x1="349" y1="362" x2="349" y2="376" stroke="#922b21" stroke-width="1.5" marker-end="url(#ar3)"/>
+<path d="M 167 416 V 430" fill="none" stroke="#922b21" stroke-width="1.5"/>
+<path d="M 349 416 V 430" fill="none" stroke="#922b21" stroke-width="1.5"/>
+<path d="M 167 430 H 349" fill="none" stroke="#922b21" stroke-width="1.5"/>
+<line x1="270" y1="430" x2="270" y2="444" stroke="#922b21" stroke-width="1.5" marker-end="url(#ar3)"/>
+<line x1="270" y1="484" x2="270" y2="512" stroke="#922b21" stroke-width="1.5" marker-end="url(#ar3)"/>
+<text x="275" y="502" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">generates</text>
+<line x1="270" y1="552" x2="270" y2="580" stroke="#c0392b" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="275" y="570" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">JSON response</text>
+<line x1="270" y1="620" x2="270" y2="648" stroke="#c0392b" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="275" y="638" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">updates UI</text>
+</svg>

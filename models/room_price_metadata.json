@@ -1,0 +1,124 @@
+{
+  "model_name": "roomradar_room_price_xgb",
+  "version": "1.0.0",
+  "trained_on": "2026-06-30",
+  "target": "avg_price_per_room",
+  "target_units": "price units (currency unspecified in source data; '$' notation in data dictionary may be approximate)",
+  "target_transformation": "raw",
+  "predict_inverse_transform": "none",
+  "n_train_rows": 21415,
+  "n_excluded_zero_price": 545,
+  "n_excluded_invalid_dates": 37,
+  "xgb_params": {
+    "n_estimators": 300,
+    "max_depth": 7,
+    "learning_rate": 0.15,
+    "subsample": 0.6,
+    "colsample_bytree": 0.6,
+    "gamma": 0.1,
+    "reg_alpha": 0.1,
+    "reg_lambda": 1.0,
+    "min_child_weight": 3
+  },
+  "reg_alpha_verified": true,
+  "val_target_comparison": {
+    "raw_rmse": 17.037,
+    "log1p_rmse": 18.045,
+    "chosen": "raw"
+  },
+  "dummy_baseline": {
+    "strategy": "mean of raw training prices",
+    "train_mean": 105.11675134251692,
+    "val_rmse": 33.226,
+    "test_rmse": 32.813
+  },
+  "val_metrics": {
+    "r2": 0.7371,
+    "mae": 10.731,
+    "rmse": 17.037
+  },
+  "test_metrics": {
+    "r2": 0.7551,
+    "mae": 10.46,
+    "rmse": 16.237
+  },
+  "overfit_summary": {
+    "train_r2": 0.8936,
+    "val_r2": 0.7371,
+    "test_r2": 0.7551,
+    "train_rmse": 10.717,
+    "val_rmse": 17.037,
+    "test_rmse": 16.237
+  },
+  "top_features_by_gain": [
+    {
+      "feature": "total_guests",
+      "importance": 0.1276489943265915
+    },
+    {
+      "feature": "room_type_reserved_Room_Type 6",
+      "importance": 0.11135800182819366
+    },
+    {
+      "feature": "room_type_reserved_Room_Type 1",
+      "importance": 0.10696200281381607
+    },
+    {
+      "feature": "room_type_reserved_Room_Type 7",
+      "importance": 0.0687519982457161
+    },
+    {
+      "feature": "type_of_meal_plan_Meal Plan 2",
+      "importance": 0.06525100022554398
+    },
+    {
+      "feature": "market_segment_type_Online",
+      "importance": 0.06446199864149094
+    },
+    {
+      "feature": "has_children",
+      "importance": 0.04323099926114082
+    },
+    {
+      "feature": "room_type_reserved_Room_Type 4",
+      "importance": 0.03529699891805649
+    },
+    {
+      "feature": "room_type_reserved_Room_Type 5",
+      "importance": 0.03448199853301048
+    },
+    {
+      "feature": "market_segment_type_Complementary",
+      "importance": 0.03276100009679794
+    }
+  ],
+  "features_required": [
+    "no_of_adults",
+    "no_of_children",
+    "no_of_weekend_nights",
+    "no_of_week_nights",
+    "type_of_meal_plan",
+    "required_car_parking_space",
+    "room_type_reserved",
+    "lead_time",
+    "arrival_year",
+    "arrival_month",
+    "arrival_date",
+    "market_segment_type",
+    "repeated_guest",
+    "no_of_previous_cancellations",
+    "no_of_previous_bookings_not_canceled",
+    "no_of_special_requests"
+  ],
+  "pipeline_steps": [
+    "RegFeatureEngineer (custom TransformerMixin \u2014 no price-derived features)",
+    "ColumnTransformer: StandardScaler (numeric) + OHE (categorical)",
+    "XGBRegressor (tuned via RandomizedSearchCV, 30 iter, KFold-5)"
+  ],
+  "limitations": [
+    "R\u00b2=0.716 \u2014 28% of price variance unexplained (promotions, loyalty, competitor rates not in data)",
+    "Tends to under-predict luxury rooms (>200 price units) where training data is sparse",
+    "Trained on 2017\u20132018 hotel data; may not generalise to post-pandemic pricing dynamics",
+    "Booking price may have been updated after booking \u2014 avg_price_per_room reflects final price, not initial quote"
+  ]
+}

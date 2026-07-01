@@ -1,0 +1,1206 @@
+---
+title: "RoomRadar: Hotel Cancellation & Room Price Prediction"
+subtitle: "Exploratory Data Analysis & Data Audit"
+author: "MADA Final Project"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    code-fold: true
+    code-summary: "Show code"
+    theme: cosmo
+    fig-cap-location: bottom
+    embed-resources: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{python}
+import sys
+from pathlib import Path
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
+ROOT = Path("..").resolve()
+sys.path.insert(0, str(ROOT / "backend"))
+FIG  = ROOT / "outputs" / "figures"
+TBL  = ROOT / "outputs" / "tables"
+
+df = pd.read_csv(ROOT / "data" / "raw" / "Hotel Reservations.csv")
+df["canceled"] = (df["booking_status"] == "Canceled").astype(int)
+```
+
+# Introduction
+
+**RoomRadar** predicts two outcomes for hotel bookings made at an Indian hotel group:
+
+1. **Cancellation probability** — will this booking be cancelled before arrival?
+2. **Predicted room price** — what is the expected average room rate for this booking?
+
+These predictions will be served through a FastAPI backend and displayed on a React dashboard deployed to Vercel.
+
+This report documents the full data audit, exploratory analysis, and cleaning decisions that inform the modelling phase. No model has been trained yet.
+
+---
+
+# Dataset Overview
+
+## Source & Provenance
+
+The dataset is the [Kaggle Hotel Reservations Classification Dataset](https://www.kaggle.com/datasets/ahsan81/hotel-reservations-classification-dataset), stored at `data/raw/Hotel Reservations.csv` and never modified.
+
+```{python}
+#| label: tbl-schema
+#| tbl-cap: "Column schema — 19 columns, 0 missing values"
+schema = pd.read_csv(TBL / "01_column_summary.csv", index_col=0)
+schema.index.name = "column"
+schema.style \
+    .format({"pct_null": "{:.2f}%"}) \
+    .set_properties(**{"text-align": "left"})
+```
+
+## Size & Completeness
+
+```{python}
+rows, cols = df.shape
+n_missing  = df.isnull().sum().sum()
+n_dupes    = df.duplicated().sum()
+
+summary = pd.DataFrame({
+    "Metric": ["Rows", "Columns", "Missing values", "Duplicate rows"],
+    "Value":  [f"{rows:,}", cols, n_missing, n_dupes],
+})
+summary.style.hide(axis="index")
+```
+
+The dataset is **complete**: no missing values and no duplicate rows across all 36,275 bookings.
+
+## Target Variable
+
+```{python}
+#| label: fig-target
+#| fig-cap: "Booking status distribution — moderate class imbalance"
+img = mpimg.imread(FIG / "01_target_distribution.png")
+fig, ax = plt.subplots(figsize=(9, 3.5), dpi=120)
+ax.imshow(img)
+ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: tbl-target
+#| tbl-cap: "Booking status counts and proportions"
+tbl = pd.read_csv(TBL / "02_target_distribution.csv", index_col=0)
+tbl.columns = ["Count", "Pct (%)"]
+tbl.style.format({"Count": "{:,}", "Pct (%)": "{:.2f}%"})
+```
+
+The cancellation rate is **32.8%** — a 2.1:1 ratio of not-cancelled to cancelled. This is a moderate class imbalance that requires stratified train/test splits. Class-weighted loss or oversampling will be evaluated after the baseline model is established.
+
+---
+
+# Data Quality Audit
+
+## Schema Validation
+
+All 19 expected columns are present and contain only expected categorical values. The `str` dtype reported by pandas 2.x for string columns is equivalent to the legacy `object` dtype — no actual mismatch.
+
+## Suspicious Value Audit
+
+```{python}
+#| label: tbl-suspicious
+#| tbl-cap: "Suspicious values flagged during audit"
+audit = pd.read_csv(TBL / "03_suspicious_value_audit.csv", index_col=0)
+audit = audit[["column", "issue", "n_rows", "pct"]].copy()
+audit.columns = ["Column", "Issue", "# Rows", "% of Dataset"]
+audit.style \
+    .format({"# Rows": "{:,}", "% of Dataset": "{:.3f}%"}) \
+    .hide(axis="index")
+```
+
+### Key findings
+
+| Issue | Count | Severity | Decision |
+|---|---|---|---|
+| Zero adults | 139 (0.38%) | Medium | Flag; keep |
+| Zero price | 545 (1.50%) | High for price model | Flag; exclude from price model |
+| Price IQR outliers (> €179.6) | 1,069 (2.95%) | Low | Keep; use log1p |
+| Zero total nights | 78 (0.22%) | Low | Flag; keep |
+| Lead time > 365 days | 243 (0.67%) | Low | Keep; use log1p |
+| Calendar-invalid dates | 37 (0.10%) | High | Drop before training |
+| Children > 5 | 3 (0.01%) | Negligible | Keep |
+
+## Cleaning Decisions
+
+```{python}
+#| label: tbl-cleaning
+#| tbl-cap: "Documented cleaning decisions with business reasoning"
+clean = pd.read_csv(TBL / "16_cleaning_decisions.csv", index_col=0)
+clean.style.hide(axis="index").set_properties(**{"text-align": "left"})
+```
+
+---
+
+# Exploratory Data Analysis
+
+## Numeric Distributions
+
+### Room Price
+
+```{python}
+#| label: fig-price
+#| fig-cap: "Room price — right-skewed raw distribution; log1p normalises it"
+img = mpimg.imread(FIG / "02_price_distribution.png")
+fig, ax = plt.subplots(figsize=(11, 3.8), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+The raw price distribution has a long right tail (skewness = 0.67) and 545 zero-price rows. Applying `log1p` produces a near-normal distribution suitable for linear models and stabilises gradient-based optimisers. Zero-price rows will be flagged separately so the model can learn their distinct pattern.
+
+The Mann-Whitney U test confirms that cancelled and non-cancelled bookings have **significantly different price distributions** (p < 10⁻²⁰⁰) — room price is a meaningful predictor.
+
+### Lead Time
+
+```{python}
+#| label: fig-lead
+#| fig-cap: "Lead time — heavily right-skewed; log1p brings it close to normal"
+img = mpimg.imread(FIG / "03_lead_time_distribution.png")
+fig, ax = plt.subplots(figsize=(11, 3.8), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+Lead time (days between booking and arrival) is the **strongest single predictor** of cancellation (Spearman |r| = 0.42). Raw skewness is 1.29 — a log1p transform is applied for linear models; tree-based models are less sensitive but benefit from the compression of the extreme tail.
+
+```{python}
+#| label: fig-guests
+#| fig-cap: "Guest and stay composition"
+img = mpimg.imread(FIG / "04_guests_and_stay.png")
+fig, ax = plt.subplots(figsize=(12, 4), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: tbl-numeric
+#| tbl-cap: "Numeric feature summary statistics"
+num = pd.read_csv(TBL / "04_numeric_summary.csv", index_col=0)
+num[["mean","std","min","50%","max","skewness"]].round(2) \
+    .style.format("{:.2f}").background_gradient(
+        subset=["skewness"], cmap="RdYlGn_r", vmin=-1, vmax=5
+    )
+```
+
+Notably high skewness:
+
+- `no_of_children` — 4.71 (almost all bookings have 0 children)
+- `no_of_previous_cancellations` — 25.2 (vast majority are 0)
+- `no_of_previous_bookings_not_canceled` — 19.25 (same pattern)
+
+These will be log-transformed or binarised in the feature engineering step.
+
+## Categorical Profiles
+
+```{python}
+#| label: fig-cats
+#| fig-cap: "Market segment and room type booking volumes"
+img = mpimg.imread(FIG / "06_market_and_room_type.png")
+fig, ax = plt.subplots(figsize=(12, 4.5), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: fig-meal
+#| fig-cap: "Meal plan selection"
+img = mpimg.imread(FIG / "07_meal_plan.png")
+fig, ax = plt.subplots(figsize=(8, 3.5), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+**Sparsity warnings:**
+
+- `Room_Type 3` — only **7 rows**. One-hot encoding would create a near-zero-variance column. Target encoding on the training fold is the safer choice.
+- `Meal Plan 3` — only **5 rows**. Same treatment.
+- `Aviation` market segment — 125 rows (0.34%). Acceptable with target encoding.
+
+---
+
+## Cancellation Analysis
+
+### By Market Segment
+
+```{python}
+#| label: fig-cancel-cat
+#| fig-cap: "Cancellation rate by market segment and room type"
+img = mpimg.imread(FIG / "08_cancel_rate_by_category.png")
+fig, ax = plt.subplots(figsize=(12, 4.5), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: tbl-cancel-mkt
+#| tbl-cap: "Cancellation rate by market segment"
+mkt = pd.read_csv(TBL / "06_cancel_rate_by_market_segment.csv", index_col=0)
+mkt.columns = ["Market Segment", "Cancel Rate (%)", "N"]
+mkt.style.format({"Cancel Rate (%)": "{:.1f}%", "N": "{:,}"}).hide(axis="index")
+```
+
+**Online** bookings cancel at 36.5% — nearly 4× the rate of **Corporate** bookings (10.9%). **Complementary** bookings have a 0% cancellation rate, which is expected (no financial cost to the guest for a comped stay, but they are presumably pre-screened).
+
+### By Special Requests
+
+```{python}
+#| label: fig-cancel-sr
+#| fig-cap: "Cancellation rate drops dramatically as special requests increase"
+img = mpimg.imread(FIG / "09_cancel_rate_by_special_requests.png")
+fig, ax = plt.subplots(figsize=(8, 3.5), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+Guests with **zero special requests** cancel at 43.2%; guests with 3 or more requests cancel at **0%**. This is one of the clearest signals in the dataset — guests who invest effort in customising their stay are far more committed. `no_of_special_requests` is the **second-strongest predictor** (|r| = 0.26).
+
+### By Lead Time
+
+```{python}
+#| label: fig-cancel-lt
+#| fig-cap: "Cancellation risk rises with lead time, especially beyond 60 days"
+img = mpimg.imread(FIG / "10_lead_time_vs_cancellation.png")
+fig, ax = plt.subplots(figsize=(12, 4.5), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: tbl-cancel-lt
+#| tbl-cap: "Cancellation rate by lead-time bucket"
+lt = pd.read_csv(TBL / "10_cancel_rate_by_lead_time_bucket.csv", index_col=0)
+lt.columns = ["Lead Time Bucket", "Cancel Rate (%)"]
+lt.style.format({"Cancel Rate (%)": "{:.1f}%"}).hide(axis="index")
+```
+
+### Price vs Cancellation
+
+```{python}
+#| label: fig-price-cancel
+#| fig-cap: "Cancelled bookings skew toward higher room prices"
+img = mpimg.imread(FIG / "11_price_vs_cancellation.png")
+fig, ax = plt.subplots(figsize=(12, 4.5), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+Cancelled bookings have **higher median prices** than non-cancelled ones. This may reflect guests who book at premium rates then find a better deal elsewhere — a common pattern in revenue management.
+
+---
+
+## Seasonality
+
+```{python}
+#| label: fig-season
+#| fig-cap: "Monthly booking volume and cancellation rate"
+img = mpimg.imread(FIG / "12_seasonality.png")
+fig, ax = plt.subplots(figsize=(12, 7), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: fig-price-month
+#| fig-cap: "Average room price peaks in summer months (Jun–Sep)"
+img = mpimg.imread(FIG / "13_price_by_month.png")
+fig, ax = plt.subplots(figsize=(10, 3.5), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+Peak booking volume occurs in **August–October**. Cancellation rates are relatively stable across months (roughly 28–36%), which suggests lead time and booking channel are stronger drivers than seasonality per se. Room prices peak in summer (Jun–Sep), consistent with leisure demand.
+
+---
+
+## Correlation Structure
+
+```{python}
+#| label: fig-corr
+#| fig-cap: "Spearman correlation matrix — lead time and special requests dominate"
+img = mpimg.imread(FIG / "14_correlation_heatmap.png")
+fig, ax = plt.subplots(figsize=(11, 8), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: tbl-corr-target
+#| tbl-cap: "Top features correlated with cancellation (Spearman |r|)"
+corr = pd.read_csv(TBL / "13_target_correlations.csv", index_col=0)
+corr.columns = ["Feature", "|r| with Canceled"]
+corr.style.format({"|r| with Canceled": "{:.3f}"}).hide(axis="index") \
+    .background_gradient(subset=["|r| with Canceled"], cmap="Reds")
+```
+
+The two strongest predictors by Spearman correlation:
+
+1. **`lead_time`** (|r| = 0.42) — the longer ahead a booking is made, the more likely it cancels
+2. **`no_of_special_requests`** (|r| = 0.26) — more requests = greater commitment = lower cancellation
+
+---
+
+## Guest History
+
+```{python}
+#| label: fig-guest-hist
+#| fig-cap: "Repeat guests cancel almost never; prior cancellations predict future ones"
+img = mpimg.imread(FIG / "15_guest_history.png")
+fig, ax = plt.subplots(figsize=(12, 4), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: tbl-repeat
+#| tbl-cap: "Cancellation rate: new vs repeat guests"
+rg = pd.read_csv(TBL / "14_cancel_rate_by_repeated_guest.csv", index_col=0)
+rg = rg[["label", "cancel_rate_pct"]]
+rg.columns = ["Guest Type", "Cancel Rate (%)"]
+rg.style.format({"Cancel Rate (%)": "{:.1f}%"}).hide(axis="index")
+```
+
+**Repeat guests** cancel at just **1.7%** vs **33.6%** for new guests. This is a 20× difference and makes `repeated_guest` one of the most actionable signals. Hotels could offer loyalty incentives to convert new guests into repeat guests as a direct cancellation-reduction strategy.
+
+---
+
+# Feature Engineering Plan
+
+The following features are **defined here but not computed yet** — they will be applied inside the training pipeline to prevent data leakage from validation and test folds.
+
+```{python}
+#| label: tbl-features
+#| tbl-cap: "Planned engineered features with rationale"
+feats = pd.read_csv(TBL / "15_feature_definitions.csv", index_col=0)
+feats.columns = ["Feature", "Derivation", "Rationale"]
+feats.style.hide(axis="index").set_properties(**{"text-align": "left", "font-size": "0.85em"})
+```
+
+---
+
+# Business Insights
+
+## Key Findings
+
+1. **Lead time is the dominant cancellation signal.** Bookings made 3+ months ahead cancel at rates exceeding 50% in some segments. Hotels should consider non-refundable rate offers or deposit requirements for long-lead bookings.
+
+2. **Special requests are a strong commitment signal.** A guest with 3+ requests has never cancelled in this dataset. Operationally, encouraging guests to add preferences (pillow type, floor preference, dietary needs) could reduce cancellations.
+
+3. **Online channel drives 64% of bookings but 36.5% cancel.** Corporate bookings cancel at only 10.9%. There may be value in incentivising corporate contracts to reduce cancellation-driven revenue loss.
+
+4. **Repeat guests almost never cancel (1.7%).** Loyalty programme investment has a direct ROI case here.
+
+5. **Cancelled bookings have higher average prices.** Guests booking premium rooms are more likely to cancel — possibly because they find better deals or because the financial commitment causes second thoughts. Targeted pre-arrival communication for high-value bookings may help retention.
+
+6. **Zero-price rows (n=545) need separate treatment.** These appear to be complimentary or staff bookings. They have distinct behaviour and should not inform the price regression model.
+
+7. **37 calendar-invalid dates** (e.g. 30 Feb) must be dropped before training — they cannot represent valid arrivals.
+
+## Recommended Cleaning Rules (Priority Order)
+
+| Priority | Rule | Rows Affected | Impact |
+|---|---|---|---|
+| 1 — Drop | Calendar-invalid arrival dates | 37 | Required |
+| 2 — Drop | Zero-price rows from price model | 545 | Required for regression |
+| 3 — Flag | Zero adults (`price_is_zero` analog) | 139 | Feature flag |
+| 4 — Flag | Zero total nights | 78 | Feature flag |
+| 5 — Transform | `log1p(lead_time)` | All | Reduces skew (1.29) |
+| 6 — Transform | `log1p(avg_price_per_room)` | All | Reduces skew (0.67) |
+| 7 — Encode | Rare categories via target encoding | ~12 rows | Prevents zero-variance cols |
+| 8 — Stratify | Train/val/test splits | All | Preserves 32.8% cancel rate |
+
+---
+
+# Classification Pipeline
+
+## Setup
+
+```{python}
+board   = pd.read_csv(TBL / "cl_07_leaderboard.csv", index_col=0)
+splits  = pd.read_csv(TBL / "cl_01_split_sizes.csv", index_col=0)
+fi      = pd.read_csv(TBL / "cl_06_feature_importance.csv", index_col=0)
+sel     = pd.read_csv(TBL / "cl_05_selected_features.csv", index_col=0)
+best_p  = pd.read_csv(TBL / "cl_04_xgb_best_params.csv", index_col=0)
+ov      = pd.read_csv(TBL / "cl_02_dt_overfitting.csv", index_col=0)
+```
+
+## Data Splits
+
+```{python}
+#| label: tbl-splits
+#| tbl-cap: "Stratified 60/20/20 split — cancellation rate preserved exactly"
+splits.style.format({"n_rows": "{:,}", "n_canceled": "{:,}",
+                     "pct_canceled": "{:.1f}%"}).hide(axis="index")
+```
+
+Each split preserves the 32.8 % cancellation rate exactly via stratification (`random_state=42`).
+
+## Preprocessing Pipeline
+
+Features pass through two sklearn stages inside each model pipeline:
+
+1. **`FeatureEngineer`** (custom `TransformerMixin`) — adds 11 derived features (`total_nights`, `log_lead_time`, `log_price`, `price_is_zero`, `arrival_season`, `arrival_dow`, `prior_cancel_rate`, etc.) while preserving the originals for tree models.
+2. **`ColumnTransformer`** — `StandardScaler` on 23 numeric columns; `OneHotEncoder(handle_unknown='infrequent_if_exist', min_frequency=10)` on 3 categorical columns → 39 total features into each model.
+
+**Leakage-safe feature selection** is applied inside the Logistic Regression pipeline as `SelectFromModel(XGBClassifier(n_estimators=50), threshold='mean')`. The selector sees only training-fold data during each CV split.
+
+---
+
+## Decision Tree — Overfitting Analysis
+
+```{python}
+#| label: fig-dt-overfit
+#| fig-cap: "DT accuracy and F1 on train vs validation across max_depth"
+img = mpimg.imread(FIG / "cl_01_dt_overfitting.png")
+fig, ax = plt.subplots(figsize=(12, 4.5), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: tbl-dt-overfit
+#| tbl-cap: "Decision Tree train vs validation metrics by depth (selected depths)"
+show_depths = [1, 3, 5, 7, 10, 14, 19, 20]
+ov_show = ov[ov["max_depth"].isin(show_depths)].copy()
+ov_show.style \
+    .format({c: "{:.4f}" for c in ov_show.columns if c != "max_depth"}) \
+    .hide(axis="index") \
+    .background_gradient(subset=["val_f1"], cmap="Greens")
+```
+
+The Decision Tree shows **classic overfitting**:
+
+- Train accuracy climbs monotonically toward 100% as depth increases.
+- Validation F1 peaks at **depth 19** (0.8091) then plateaus — the tree has learnt most of the recoverable signal by this point.
+- The train–val **F1 gap** at depth 19 is `0.945 − 0.809 = 0.136`, confirming the model memorises training patterns that do not generalise fully.
+- XGBoost's regularisation (`gamma=0.3`, `reg_lambda=3.0`) closes this gap to `0.931 − 0.830 = 0.101` while achieving higher absolute performance.
+
+---
+
+## XGBoost — Hyperparameter Tuning
+
+```{python}
+#| label: fig-xgb-cv
+#| fig-cap: "RandomizedSearchCV: top-10 configurations by 5-fold CV ROC-AUC"
+img = mpimg.imread(FIG / "cl_02_xgb_cv_results.png")
+fig, ax = plt.subplots(figsize=(10, 4.5), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: tbl-xgb-params
+#| tbl-cap: "Best XGBoost hyperparameters (30 iterations, 5-fold stratified CV)"
+best_p.columns = ["Parameter", "Value"]
+best_p.style.hide(axis="index")
+```
+
+Search space covered n_estimators, max_depth, learning_rate, subsample, colsample_bytree, min_child_weight, gamma, reg_alpha, reg_lambda across 30 random configurations with 5-fold stratified CV scored on ROC-AUC. Best CV ROC-AUC = **0.9514**.
+
+---
+
+## Feature Selection (Logistic Regression)
+
+```{python}
+#| label: tbl-sel-features
+#| tbl-cap: "Features selected by SelectFromModel — 14 of 39 kept"
+sel_yes = sel[sel["selected"] == True]["feature"].reset_index(drop=True)
+sel_no  = sel[sel["selected"] == False]["feature"].reset_index(drop=True)
+n_pad   = max(len(sel_yes), len(sel_no))
+pd.DataFrame({
+    "Selected (14)": list(sel_yes) + [""] * (n_pad - len(sel_yes)),
+    "Dropped (25)":  list(sel_no)  + [""] * (n_pad - len(sel_no)),
+}).style.hide(axis="index").set_properties(**{"font-size": "0.85em"})
+```
+
+The leakage-safe selector (XGB with 50 trees, threshold=mean importance) retains 14 of 39 post-OHE features. Notably selected: `lead_time`, `avg_price_per_room`, `no_of_special_requests`, `arrival_season`, `market_segment_type_Online/Offline` — all confirmed strong predictors in EDA.
+
+---
+
+## Model Leaderboard
+
+```{python}
+#| label: fig-leaderboard
+#| fig-cap: "All five test-set metrics across four models"
+img = mpimg.imread(FIG / "cl_06_leaderboard.png")
+fig, ax = plt.subplots(figsize=(16, 4.5), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: tbl-leaderboard
+#| tbl-cap: "Full leaderboard — test set (positive class = Canceled)"
+show_cols = ["model", "train_f1", "val_f1", "test_accuracy",
+             "test_precision", "test_recall", "test_f1", "test_roc_auc"]
+board[show_cols].style \
+    .format({c: "{:.4f}" for c in show_cols if c != "model"}) \
+    .hide(axis="index") \
+    .background_gradient(subset=["test_roc_auc"], cmap="Greens") \
+    .background_gradient(subset=["test_f1"],      cmap="Blues")
+```
+
+| Model | Test Acc | Test F1 | Test AUC | Train–Val F1 gap |
+|---|---|---|---|---|
+| **XGBoost** | **0.882** | **0.827** | **0.953** | 0.10 |
+| Decision Tree | 0.861 | 0.795 | 0.876 | 0.14 |
+| Logistic Regression | 0.777 | 0.696 | 0.863 | 0.00 |
+| Dummy | 0.672 | 0.000 | 0.500 | — |
+
+**XGBoost wins on every metric.** Its AUC of 0.953 means it correctly ranks a random cancelled booking above a random non-cancelled booking 95.3% of the time.
+
+---
+
+## Confusion Matrices — Test Set
+
+```{python}
+#| label: fig-cms
+#| fig-cap: "Confusion matrices — test set (2,376 Canceled, 4,872 Not_Canceled)"
+img = mpimg.imread(FIG / "cl_03_confusion_matrices.png")
+fig, ax = plt.subplots(figsize=(15, 4), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+XGBoost misclassifies **281 cancellations as not-cancelled** (false negatives) and **578 non-cancellations as cancelled** (false positives) out of 7,248 test rows. The class-weight and `scale_pos_weight=2` settings keep recall competitive at ~83%.
+
+---
+
+## ROC Curves — Test Set
+
+```{python}
+#| label: fig-roc
+#| fig-cap: "ROC curves — XGBoost dominates across all operating points"
+img = mpimg.imread(FIG / "cl_04_roc_curves.png")
+fig, ax = plt.subplots(figsize=(8, 7), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+XGBoost's ROC curve lies above all other models at every threshold. The gap between XGBoost (0.953) and Decision Tree (0.876) is substantial — regularised ensembles dominate on this dataset.
+
+---
+
+## XGBoost Feature Importances
+
+```{python}
+#| label: fig-fi
+#| fig-cap: "XGBoost gain importances — top 20 features"
+img = mpimg.imread(FIG / "cl_05_feature_importance.png")
+fig, ax = plt.subplots(figsize=(9, 7), dpi=120)
+ax.imshow(img); ax.axis("off"); plt.tight_layout(); plt.show()
+```
+
+```{python}
+#| label: tbl-fi
+#| tbl-cap: "Top 10 XGBoost feature importances"
+fi.head(10).style.format({"importance": "{:.4f}"}).hide(axis="index")
+```
+
+**`market_segment_type_Online`** is the single most important feature (gain = 0.233), consistent with online bookings having a 36.5% cancellation rate vs 10.9% for corporate. **`required_car_parking_space`** ranks second — guests who request parking are significantly less likely to cancel (a proxy for commitment). **`no_of_special_requests`** and its binary version `has_special_request` both appear in the top 10, confirming the EDA finding.
+
+---
+
+# Business Insights
+
+## Key Findings
+
+1. **Lead time is the dominant cancellation signal.** Bookings made 3+ months ahead cancel at rates exceeding 50% in some segments. Hotels should consider non-refundable rate offers or deposit requirements for long-lead bookings.
+
+2. **Special requests are a strong commitment signal.** A guest with 3+ requests has never cancelled in this dataset. Operationally, encouraging guests to add preferences (pillow type, floor preference, dietary needs) could reduce cancellations.
+
+3. **Online channel drives 64% of bookings but 36.5% cancel.** Corporate bookings cancel at only 10.9%. There may be value in incentivising corporate contracts to reduce cancellation-driven revenue loss.
+
+4. **Repeat guests almost never cancel (1.7%).** Loyalty programme investment has a direct ROI case here.
+
+5. **Cancelled bookings have higher average prices.** Guests booking premium rooms are more likely to cancel — possibly because they find better deals or because the financial commitment causes second thoughts. Targeted pre-arrival communication for high-value bookings may help retention.
+
+6. **Zero-price rows (n=545) need separate treatment.** These appear to be complimentary or staff bookings. They have distinct behaviour and should not inform the price regression model.
+
+7. **37 calendar-invalid dates** (e.g. 30 Feb) must be dropped before training — they cannot represent valid arrivals.
+
+## Recommended Cleaning Rules (Priority Order)
+
+| Priority | Rule | Rows Affected | Impact |
+|---|---|---|---|
+| 1 — Drop | Calendar-invalid arrival dates | 37 | Required |
+| 2 — Drop | Zero-price rows from price model | 545 | Required for regression |
+| 3 — Flag | Zero adults (`price_is_zero` analog) | 139 | Feature flag |
+| 4 — Flag | Zero total nights | 78 | Feature flag |
+| 5 — Transform | `log1p(lead_time)` | All | Reduces skew (1.29) |
+| 6 — Transform | `log1p(avg_price_per_room)` | All | Reduces skew (0.67) |
+| 7 — Encode | Rare categories via OHE infrequent | ~12 rows | Prevents zero-variance cols |
+| 8 — Stratify | Train/val/test splits | All | Preserves 32.8% cancel rate |
+
+---
+
+# Cancellation Model Finalization
+
+This section covers probability calibration, decision threshold selection, risk band
+definition, and the final production model artefacts.
+
+Script: `ml/scripts/finalize_classification.py`
+
+```{python}
+PROD_TBL = ROOT / "outputs" / "tables"
+PROD_FIG = ROOT / "outputs" / "figures"
+import json
+META = json.loads((ROOT / "models" / "cancellation_metadata.json").read_text())
+```
+
+## Probability Calibration
+
+A well-trained classifier can produce mis-calibrated probabilities — the raw
+XGBoost score at 0.7 does not necessarily mean a 70 % cancellation rate.
+We evaluated two post-hoc calibrators on the **validation set only**:
+
+- **Isotonic regression** — monotone non-parametric recalibration
+- **Sigmoid (Platt scaling)** — logistic regression on the raw scores
+
+Both are fitted to the same 7,248-row validation set. The test set is never
+opened during this step.
+
+### Brier Scores
+
+```{python}
+cal_tbl = pd.read_csv(PROD_TBL / "prod_01_calibration_brier_scores.csv", index_col=0)
+cal_tbl.style.format({"brier_score": "{:.5f}"}).hide(axis="index")
+```
+
+*Lower Brier score = better probability accuracy.  Isotonic calibration wins.*
+
+### Reliability Diagrams
+
+```{python}
+fig, ax = plt.subplots(figsize=(11, 5))
+img = mpimg.imread(PROD_FIG / "prod_01_reliability_curves.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+*A perfect calibrator would follow the diagonal. Isotonic (right panel) is much
+closer to ideal than uncalibrated (left panel), especially in the 40–80 % range
+where the hotel's revenue risk is highest.*
+
+## Decision Threshold Selection
+
+The default 0.5 threshold is rarely optimal for imbalanced binary classification.
+We searched thresholds from 0.05 to 0.85 on the validation set and chose the one
+that **maximises F1** for the positive class (Canceled).
+
+```{python}
+thresh_tbl = pd.read_csv(PROD_TBL / "prod_02_threshold_search_val.csv", index_col=0)
+best = thresh_tbl.loc[thresh_tbl["f1"].idxmax()]
+print(f"Chosen threshold: {best['threshold']:.2f}   "
+      f"Val F1={best['f1']:.4f}   Precision={best['precision']:.4f}   Recall={best['recall']:.4f}")
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(11, 5))
+img = mpimg.imread(PROD_FIG / "prod_02_threshold_analysis.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+*The F1 curve peaks at **threshold = 0.34** — lower than 0.5 because the
+positive class (Canceled, 32.8 %) is the minority.  Lowering the threshold
+recovers more true cancellations at a modest cost to precision.*
+
+## Risk Band Definitions
+
+We overlay three business risk bands on top of the calibrated probability:
+
+| Band | Probability range | Business action |
+|---|---|---|
+| **Low** | < 30 % | No action required |
+| **Medium** | 30 – 60 % | Pre-arrival confirmation, offer flexible upgrade |
+| **High** | > 60 % | Require deposit or issue retention incentive |
+
+```{python}
+band_tbl = pd.read_csv(PROD_TBL / "prod_03_risk_band_distribution.csv", index_col=0)
+band_tbl[band_tbl["split"]=="test"].drop(columns="split").style.hide(axis="index")
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(11, 5))
+img = mpimg.imread(PROD_FIG / "prod_03_risk_bands.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+*On the test set, 63 % of bookings fall in the Low band with only a 6.6 % actual
+cancellation rate — virtually no hotel action needed.  The High band captures 29 %
+of bookings with an 87 % actual cancellation rate, giving operations teams a very
+reliable alert signal.*
+
+## Final Test-Set Evaluation
+
+The test set was opened **once** after all calibration and threshold decisions were
+locked on the validation set.
+
+### Uncalibrated vs Calibrated on Test Set
+
+```{python}
+cmp_tbl = pd.read_csv(PROD_TBL / "prod_05_raw_vs_calibrated_test.csv", index_col=0)
+cmp_tbl.style.format({
+    "accuracy": "{:.4f}", "precision": "{:.4f}", "recall": "{:.4f}",
+    "f1": "{:.4f}", "roc_auc": "{:.4f}", "brier": "{:.5f}"
+}).hide(axis="index")
+```
+
+*Calibration improves the Brier score (probability quality) without meaningfully
+changing classification metrics — the model's ranking ability (AUC) is unchanged.*
+
+### Confusion Matrices
+
+```{python}
+fig, ax = plt.subplots(figsize=(11, 5))
+img = mpimg.imread(PROD_FIG / "prod_04_confusion_matrix_final.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+### ROC Curve with Operating Point
+
+```{python}
+fig, ax = plt.subplots(figsize=(7, 6))
+img = mpimg.imread(PROD_FIG / "prod_05_roc_final.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+## Overfitting: Honest Assessment
+
+```{python}
+ov_tbl = pd.read_csv(PROD_TBL / "prod_04_overfitting_summary.csv", index_col=0)
+ov_tbl.style.format({
+    "accuracy": "{:.4f}", "precision": "{:.4f}", "recall": "{:.4f}",
+    "f1": "{:.4f}", "roc_auc": "{:.4f}", "brier": "{:.5f}"
+})
+```
+
+**Summary:**
+
+- **Train → Val F1 gap = 0.099** — XGBoost memorises some training patterns despite
+  regularisation (`gamma=0.3`, `reg_lambda=3.0`).  This is expected for a 500-tree
+  ensemble on 21 k rows.
+- **Val → Test F1 gap = 0.005** — negligible.  Val and test metrics are nearly
+  identical, confirming that the model generalises well and that threshold/calibration
+  choices made on the validation set are not overfitted.
+- **ROC-AUC is stable**: 0.9921 (train) → 0.9531 (val) → 0.9523 (test).  The
+  ranking ability generalises well; the gap is mostly in the tails of the probability
+  distribution where the model is overconfident on training data.
+- **Calibration reduces the Brier score** from 0.0840 (uncal) to 0.0792 (cal)
+  on the test set, confirming that the isotonic calibrator generalises beyond val.
+
+## Saved Production Artefacts
+
+```{python}
+import os
+model_size = os.path.getsize(ROOT / "models" / "cancellation_model.pkl") / 1024
+print(f"cancellation_model.pkl          {model_size:.1f} KB")
+print(f"cancellation_metadata.json      {os.path.getsize(ROOT / 'models' / 'cancellation_metadata.json') / 1024:.1f} KB")
+print(f"\nThreshold : {META['threshold']}")
+print(f"Calibration: {META['calibration_method']}")
+print(f"Brier score: {META['brier_calibrated']} (calibrated)  "
+      f"{META['brier_uncalibrated']} (raw)")
+print(f"Test AUC   : {META['test_metrics']['roc_auc']}")
+print(f"Test F1    : {META['test_metrics']['f1']}")
+```
+
+The pipeline can be loaded and used for inference with:
+
+```python
+import joblib, pandas as pd, sys
+from pathlib import Path
+sys.path.insert(0, "ml/scripts")   # for CalibratedPipeline + FeatureEngineer
+from calibration_pipeline import CalibratedPipeline
+from train_classification import FeatureEngineer
+
+model = joblib.load("models/cancellation_model.pkl")
+prob  = model.predict_proba(booking_df)[0, 1]  # calibrated cancellation probability
+```
+
+---
+
+# Room Price Regression Pipeline
+
+Predicts `avg_price_per_room` (€) for a hotel booking.
+
+Script: `ml/scripts/train_regression.py`
+
+**Cleaning applied (regression-specific):**
+
+| Rule | Rows | Reason |
+|---|---|---|
+| Drop invalid calendar dates | -37 | Same as classification |
+| Drop zero-price rows | -545 | No meaningful price signal; distort regression |
+| **Training set** | **21,415** | After both exclusions |
+
+**Excluded from predictors:** `Booking_ID`, `booking_status`, `avg_price_per_room`,
+`log_price`, `price_is_zero` — the last two would directly leak the target.
+
+```{python}
+RG_TBL = ROOT / "outputs" / "tables"
+RG_FIG = ROOT / "outputs" / "figures"
+```
+
+## Data Splits
+
+```{python}
+split_tbl = pd.read_csv(RG_TBL / "rg_01_split_sizes.csv", index_col=0)
+split_tbl.style.format({"mean": "{:.2f}", "median": "{:.2f}", "std": "{:.2f}",
+                         "min": "{:.2f}", "max": "{:.2f}"}).hide(axis="index")
+```
+
+All three splits have nearly identical mean (≈ €105) and std (≈ €33), confirming
+the simple random 60/20/20 split is well-balanced for regression.
+
+## Target Transformation: Raw vs log1p
+
+```{python}
+fig, ax = plt.subplots(figsize=(11, 4.5))
+img = mpimg.imread(RG_FIG / "rg_01_target_distribution.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+target_tbl = pd.read_csv(RG_TBL / "rg_02_target_comparison.csv", index_col=0)
+target_tbl.style.format({"r2": "{:.4f}", "mae": "{:.2f}", "rmse": "{:.2f}"}).hide(axis="index")
+```
+
+*The log1p transformation reduces right skew (skew drops from ≈ 1.2 to ≈ −0.1)
+and marginally improves Ridge validation RMSE (€23.04 vs €23.05).  All models are
+therefore trained on log1p(y); predictions are back-transformed with `expm1` before
+all metric calculations and comparisons.*
+
+## Decision Tree Overfitting
+
+```{python}
+fig, ax = plt.subplots(figsize=(9, 5))
+img = mpimg.imread(RG_FIG / "rg_02_dt_overfitting.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+ov_dt = pd.read_csv(RG_TBL / "rg_03_dt_overfitting.csv", index_col=0)
+ov_dt.style.format({"train_rmse": "{:.2f}", "val_rmse": "{:.2f}", "gap": "{:.2f}"})
+```
+
+*Validation RMSE bottoms at depth 12 (RMSE ≈ €20.41). Beyond that, additional
+splits fit noise — train RMSE collapses to €7.61 at depth 20 while val RMSE
+rises to €21.29, a gap of €13.68.  The tree at depth 12 is used in the
+model comparison.*
+
+## XGBoost Hyperparameter Tuning
+
+```{python}
+xgb_tbl = pd.read_csv(RG_TBL / "rg_04_xgb_best_params.csv", index_col=0)
+xgb_tbl.style.hide(axis="index")
+```
+
+*30 random combinations tested with 5-fold KFold CV on the training set.
+Best CV RMSE ≈ 0.188 (log-space); equivalent to ≈ €20 back-transformed.
+Moderate depth (7) with light subsampling (0.6) and L2 regularisation
+prevent overfitting.*
+
+## Test-Set Leaderboard
+
+```{python}
+leader = pd.read_csv(RG_TBL / "rg_06_leaderboard_test.csv", index_col=0)
+leader.style.format({
+    "train_r2": "{:.4f}", "train_mae": "{:.2f}", "train_rmse": "{:.2f}",
+    "test_r2": "{:.4f}", "test_mae":  "{:.2f}", "test_rmse":  "{:.2f}",
+}).hide(axis="index").highlight_min(subset=["test_rmse"], color="#fce4e4")\
+  .highlight_max(subset=["test_r2"],   color="#e8f8e8")
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(14, 4.5))
+img = mpimg.imread(RG_FIG / "rg_06_leaderboard_bar.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+**XGBoost is the clear winner:** test RMSE €17.48, MAE €11.83, R² 0.716.
+This means the model explains 71.6 % of price variance and is off by ~€12 on average.
+
+| Model | Train RMSE | Test RMSE | Overfit gap |
+|---|---|---|---|
+| DummyRegressor | €33.21 | €33.11 | — |
+| Ridge | €22.86 | €23.18 | €0.32 |
+| DecisionTree (d=12) | €16.46 | €20.58 | €4.12 |
+| **XGBoost (tuned)** | **€15.97** | **€17.48** | €1.51 |
+
+## Predicted vs Actual
+
+```{python}
+fig, ax = plt.subplots(figsize=(13, 10))
+img = mpimg.imread(RG_FIG / "rg_03_predicted_vs_actual.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+*All models under-predict at the high end (>€200) — a common pattern when the
+training set has few extreme observations.  XGBoost handles the mid-range (€50–€200)
+well, with predictions tightly clustered around the diagonal.*
+
+## Residual Analysis (XGBoost)
+
+```{python}
+fig, ax = plt.subplots(figsize=(15, 4.5))
+img = mpimg.imread(RG_FIG / "rg_04_residuals_xgb.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+*Residuals are centred near zero with some right-skew at high prices (the model
+consistently under-predicts luxury rooms).  The QQ plot shows light tails — the
+distribution is approximately normal in the core range but has heavier tails than
+a Gaussian.*
+
+## Feature Importances (XGBoost)
+
+```{python}
+fig, ax = plt.subplots(figsize=(9, 7))
+img = mpimg.imread(RG_FIG / "rg_05_feature_importances.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+fi = pd.read_csv(RG_TBL / "rg_07_feature_importances_xgb.csv", index_col=0)
+fi.head(10).style.format({"importance": "{:.4f}"}).hide(axis="index")
+```
+
+**Top predictors of room price:**
+
+1. **room_type_reserved (Room_Type 1)** — single largest driver; premium room types
+   command 30–50 % price premiums
+2. **total_guests** — more guests → larger rooms → higher price
+3. **market_segment_type** — Online and Complementary segments have different effective
+   pricing compared to Corporate
+4. **arrival_season** — seasonal demand affects rack rates
+5. **type_of_meal_plan** — meal inclusions add to the effective room price
+
+These align with standard hotel revenue management theory.
+
+## Overfitting Summary
+
+| Model | Train R² | Test R² | Train RMSE | Test RMSE |
+|---|---|---|---|---|
+| DummyRegressor | −0.02 | −0.02 | €33.21 | €33.11 |
+| Ridge | 0.52 | 0.50 | €22.86 | €23.18 |
+| DecisionTree (d=12) | 0.75 | 0.61 | €16.46 | €20.58 |
+| XGBoost (tuned) | 0.76 | 0.72 | €15.97 | €17.48 |
+
+**XGBoost overfitting is minimal** (train R² 0.764 → test R² 0.716, gap = 0.048).
+Regularisation (`gamma=0.1`, `reg_lambda=1.0`, `subsample=0.6`) is working.
+
+**Decision Tree overfits more** despite using optimal depth 12 — the train/test
+RMSE gap is €4.12 vs €1.51 for XGBoost.
+
+**Ceiling analysis:** R² = 0.716 leaves 28.4 % unexplained variance.  The missing
+signal is likely contextual: special promotions, loyalty pricing, group discounts,
+and competitor rates — none of which are available in this dataset.
+
+---
+
+# Room Price Model Finalization
+
+This section documents the pre-save validation steps and the final production
+regression model artefacts.
+
+Script: `ml/scripts/finalize_regression.py`
+
+```{python}
+import json as _json
+REG_META = _json.loads((ROOT / "models" / "room_price_metadata.json").read_text())
+RG_FIN_TBL = ROOT / "outputs" / "tables"
+RG_FIN_FIG = ROOT / "outputs" / "figures"
+```
+
+## Pre-save Validation
+
+### 1 — Parameter name verification
+
+```{python}
+print(f"reg_alpha verified: {REG_META['reg_alpha_verified']}")
+print(f"XGBoost params stored: {list(REG_META['xgb_params'].keys())}")
+```
+
+`reg_alpha` and `reg_lambda` are confirmed correct for the XGBoost 3.3 sklearn API.
+The `alpha`/`lambda` aliases exist only in the native booster; the sklearn
+`XGBRegressor` uses the `reg_` prefix throughout.
+
+### 2 — Currency note
+
+The project data dictionary annotates `avg_price_per_room` with a `$` symbol
+(e.g., "max $540") but the original Kaggle dataset does not specify a currency.
+All monetary values are therefore labelled **price units** in model outputs and
+metadata to avoid misrepresenting the denomination.
+
+### 3 — Target transformation: tuned XGBoost on validation
+
+The training pipeline (`train_regression.py`) compared raw vs log1p(y) using
+Ridge regression only.  Here we compare them using the **tuned XGBoost
+hyperparameters** on the validation set — no test data used.
+
+```{python}
+cmp = pd.read_csv(RG_FIN_TBL / "rg_fin_01_target_comparison_xgb_val.csv", index_col=0)
+cmp.style.format({"r2": "{:.4f}", "mae": "{:.3f}", "rmse": "{:.3f}"}).hide(axis="index")
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(12, 4.5))
+img = mpimg.imread(RG_FIN_FIG / "rg_fin_01_target_comparison_xgb.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+**Result:** The **raw target** outperforms log1p for the tuned XGBoost
+(val RMSE 17.037 vs 18.045, Δ = 1.008 price units).  This reverses the earlier
+Ridge-based finding — XGBoost's tree structure handles the slightly right-skewed
+price distribution directly without needing the log transformation.  The
+production model is therefore trained on the **raw target**.
+
+### 4 — Corrected DummyRegressor baseline
+
+The previous training run trained `DummyRegressor` on the log1p target, making
+it predict the *geometric mean* of prices.  The correct baseline predicts the
+*arithmetic mean* of the raw training prices.
+
+```{python}
+dummy_tbl = pd.read_csv(RG_FIN_TBL / "rg_fin_02_dummy_baseline_raw.csv", index_col=0)
+print(f"Arithmetic mean of training prices: {REG_META['dummy_baseline']['train_mean']:.2f} price units")
+dummy_tbl.style.format({"r2": "{:.4f}", "mae": "{:.3f}", "rmse": "{:.3f}"}).hide(axis="index")
+```
+
+The corrected Dummy val RMSE (33.226) is close to the log1p version (33.570) —
+the difference is small but the arithmetic mean is the correct conceptual baseline.
+
+### 5 — Regenerated feature importances (production model)
+
+```{python}
+fig, ax = plt.subplots(figsize=(9, 6))
+img = mpimg.imread(RG_FIN_FIG / "rg_fin_02_feature_importances_production.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+fi_prod = pd.read_csv(RG_FIN_TBL / "rg_fin_03_feature_importances_clean.csv", index_col=0)
+fi_prod.head(10).style.format({"importance": "{:.5f}"}).hide(axis="index")
+```
+
+**Key shift from log1p → raw target model:**
+
+| Rank | Raw target model | log1p model |
+|---|---|---|
+| 1 | total_guests (0.128) | room_type_reserved_Room_Type_1 (0.136) |
+| 2 | room_type_reserved_Room_Type_6 (0.111) | total_guests (0.127) |
+| 3 | room_type_reserved_Room_Type_1 (0.107) | market_segment_type_Online (0.092) |
+| 4 | room_type_reserved_Room_Type_7 (0.069) | market_segment_type_Complementary (0.068) |
+| 5 | type_of_meal_plan_Meal_Plan_2 (0.065) | room_type_reserved_Room_Type_4 (0.065) |
+
+Party size (`total_guests`) moves to first place and Room_Type_6 / _7 become more
+prominent — these are the higher-priced suite categories that have larger absolute
+price effects, which the raw model captures directly.
+
+## Final Test-Set Evaluation
+
+The test set was opened exactly once, after all target-transformation and
+hyperparameter decisions were locked.
+
+```{python}
+final_tbl = pd.read_csv(RG_FIN_TBL / "rg_fin_04_final_metrics.csv", index_col=0)
+final_tbl.style.format({"r2": "{:.4f}", "mae": "{:.3f}", "rmse": "{:.3f}"}).hide(axis="index")
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(13, 5))
+img = mpimg.imread(RG_FIN_FIG / "rg_fin_03_final_test_evaluation.png")
+ax.imshow(img); ax.axis("off")
+plt.tight_layout()
+plt.show()
+```
+
+| Metric | Dummy (raw mean) | XGBoost (raw, tuned) |
+|---|---|---|
+| Test R² | −0.0002 | **0.755** |
+| Test MAE | 25.16 price units | **10.46 price units** |
+| Test RMSE | 32.81 price units | **16.24 price units** |
+
+XGBoost reduces RMSE from the dummy baseline by **16.57 price units (51 %)**.
+
+**Overfitting:**
+
+| Split | R² | RMSE |
+|---|---|---|
+| Train | 0.894 | 10.72 |
+| Val | 0.737 | 17.04 |
+| Test | **0.755** | **16.24** |
+
+Train→Val R² gap = 0.157 (moderate — XGBoost memorises some training noise).
+Val→Test gap = −0.018 (test slightly *better* than val — within normal sampling
+variation for splits of this size; the model generalises cleanly).
+
+## Saved Production Artefacts
+
+```{python}
+import os as _os
+price_size = _os.path.getsize(ROOT / "models" / "room_price_model.pkl") / 1024
+meta_size  = _os.path.getsize(ROOT / "models" / "room_price_metadata.json") / 1024
+print(f"room_price_model.pkl         {price_size:.1f} KB")
+print(f"room_price_metadata.json     {meta_size:.1f} KB")
+print(f"\nTarget transformation : {REG_META['target_transformation']}")
+print(f"Predict inverse       : {REG_META['predict_inverse_transform']}")
+print(f"Val  R² / RMSE        : {REG_META['val_metrics']['r2']} / {REG_META['val_metrics']['rmse']}")
+print(f"Test R² / RMSE        : {REG_META['test_metrics']['r2']} / {REG_META['test_metrics']['rmse']}")
+print(f"Dummy val RMSE        : {REG_META['dummy_baseline']['val_rmse']} (arithmetic mean baseline)")
+```
+
+The pipeline can be loaded and used for inference with:
+
+```python
+import joblib, pandas as pd, sys
+from pathlib import Path
+sys.path.insert(0, "ml/scripts")
+from train_regression import RegFeatureEngineer  # registers class for unpickling
+
+model = joblib.load("models/room_price_model.pkl")
+price = float(model.predict(booking_df)[0])  # price in original units (no back-transform needed)
+```
+
+**Known limitations:**
+
+```{python}
+for i, lim in enumerate(REG_META["limitations"], 1):
+    print(f"{i}. {lim}")
+```
+
+---
+
+# Next Steps
+
+- [x] **Step 2** — EDA, data audit, cleaning decisions
+- [x] **Step 3** — Classification pipeline: 4 models, XGBoost tuned, AUC 0.953
+- [x] **Step 3a** — Calibration, threshold selection, risk bands, production model saved
+- [x] **Step 3b** — Regression pipeline: 4 models, XGBoost tuned, test R² 0.755, RMSE 16.24
+- [x] **Step 3c** — Regression finalized: raw target confirmed, features verified, production model saved
+- [ ] **Step 4** — Wire `/predict` endpoint to trained models
+- [ ] **Step 5** — Build React dashboard
+- [ ] **Step 6** — Deploy to Vercel

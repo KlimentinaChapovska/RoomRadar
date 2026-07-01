@@ -1,0 +1,52 @@
+<mxfile host="app.diagrams.net" modified="2026-06-27" version="21.0">
+  <diagram id="flow3" name="Predict and What-If Flow">
+    <mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="600" pageHeight="1040" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="t1" value="Predict &amp; What-If Simulator Flow" style="text;html=1;strokeColor=none;fillColor=none;fontColor=#c0392b;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1"><mxGeometry x="70" y="14" width="380" height="24" as="geometry"/></mxCell>
+
+        <!-- Step 1: User -->
+        <mxCell id="b1"  value="User enters booking details"                        style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="50"  width="300" height="40" as="geometry"/></mxCell>
+        <!-- Step 2: React Frontend -->
+        <mxCell id="brf" value="React Frontend"                                     style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="130" width="300" height="40" as="geometry"/></mxCell>
+        <!-- Step 3: FastAPI -->
+        <mxCell id="b2"  value="FastAPI  /predict"                                  style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="210" width="300" height="40" as="geometry"/></mxCell>
+        <!-- Step 4: Validation -->
+        <mxCell id="b3"  value="Input Validation"                                   style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="290" width="300" height="40" as="geometry"/></mxCell>
+        <!-- Step 5: Preprocessing -->
+        <mxCell id="b4"  value="Data Preprocessing"                                 style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="370" width="300" height="40" as="geometry"/></mxCell>
+
+        <!-- Step 6: Parallel model boxes -->
+        <mxCell id="b5L" value="Cancellation Classifier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="460" width="142" height="40" as="geometry"/></mxCell>
+        <mxCell id="b5R" value="Room-Price Regressor"    style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="268" y="460" width="142" height="40" as="geometry"/></mxCell>
+
+        <!-- Steps 7–10 -->
+        <mxCell id="b6"  value="Combine Prediction Results"                          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="548" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b7"  value="Explanation &amp; Recommendation Service"            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="628" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b8"  value="FastAPI returns JSON"                               style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="708" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b9"  value="React — prediction cards &amp; comparison charts"   style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef0ee;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="110" y="788" width="300" height="40" as="geometry"/></mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e0"  value=""                         style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;" edge="1" source="b1"  target="brf" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e1"  value="POST /predict"            style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;" edge="1" source="brf" target="b2"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2"  value="calls"                    style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;" edge="1" source="b2"  target="b3"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3"  value="validates → preprocesses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#922b21;fontSize=9;" edge="1" source="b3"  target="b4"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Fork -->
+        <mxCell id="e4L" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#922b21;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="b4" target="b5L" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4R" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#922b21;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="b4" target="b5R" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Merge -->
+        <mxCell id="e5L" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#922b21;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="b5L" target="b6" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5R" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#922b21;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="b5R" target="b6" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="e6"  value="generates"    style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#922b21;fontSize=9;" edge="1" source="b6" target="b7" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7"  value="JSON response" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;" edge="1" source="b7" target="b8" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8"  value="updates UI"   style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;" edge="1" source="b8" target="b9" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

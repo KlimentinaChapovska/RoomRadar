@@ -1,0 +1,4 @@
+,split,n_rows,n_canceled,pct_canceled
+0,train,21742,7126,32.78
+1,val,7248,2376,32.78
+2,test,7248,2376,32.78

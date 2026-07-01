@@ -1,0 +1,7 @@
+,split,band,n_bookings,pct_of_split,n_canceled,actual_cancel_rate
+0,val,low,4622,63.8,312,6.8
+1,val,medium,520,7.2,214,41.2
+2,val,high,2106,29.1,1850,87.8
+3,test,low,4576,63.1,300,6.6
+4,test,medium,542,7.5,216,39.9
+5,test,high,2130,29.4,1860,87.3

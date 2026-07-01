@@ -1,0 +1,21 @@
+,column,value,count,pct
+0,type_of_meal_plan,Meal Plan 1,27835,76.73
+1,type_of_meal_plan,Not Selected,5130,14.14
+2,type_of_meal_plan,Meal Plan 2,3305,9.11
+3,type_of_meal_plan,Meal Plan 3,5,0.01
+4,room_type_reserved,Room_Type 1,28130,77.55
+5,room_type_reserved,Room_Type 4,6057,16.7
+6,room_type_reserved,Room_Type 6,966,2.66
+7,room_type_reserved,Room_Type 2,692,1.91
+8,room_type_reserved,Room_Type 5,265,0.73
+9,room_type_reserved,Room_Type 7,158,0.44
+10,room_type_reserved,Room_Type 3,7,0.02
+11,market_segment_type,Online,23214,63.99
+12,market_segment_type,Offline,10528,29.02
+13,market_segment_type,Corporate,2017,5.56
+14,market_segment_type,Complementary,391,1.08
+15,market_segment_type,Aviation,125,0.34
+16,required_car_parking_space,0,35151,96.9
+17,required_car_parking_space,1,1124,3.1
+18,repeated_guest,0,35345,97.44
+19,repeated_guest,1,930,2.56

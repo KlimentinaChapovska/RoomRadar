@@ -1,0 +1,23 @@
+---
+title: "RoomRadar"
+subtitle: "Hotel Cancellation & Room Price Prediction"
+author: "MADA Final Project"
+date: today
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    transition: fade
+---
+
+## Introduction
+
+<!-- TODO: fill in after report is drafted -->
+
+## Data
+
+## Methods
+
+## Results
+
+## Conclusions

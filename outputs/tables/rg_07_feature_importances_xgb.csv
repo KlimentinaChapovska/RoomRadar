@@ -1,0 +1,21 @@
+,feature,importance
+0,cat__room_type_reserved_Room_Type 1,0.13568178
+1,num__total_guests,0.12727888
+2,cat__market_segment_type_Online,0.09207588
+3,cat__market_segment_type_Complementary,0.06757912
+4,cat__room_type_reserved_Room_Type 4,0.06456485
+5,cat__room_type_reserved_Room_Type 6,0.060965206
+6,num__arrival_season,0.043174095
+7,cat__type_of_meal_plan_Meal Plan 2,0.035356287
+8,num__has_children,0.028051082
+9,num__arrival_month,0.026621716
+10,cat__room_type_reserved_Room_Type 7,0.023871554
+11,num__repeated_guest,0.023199148
+12,num__no_of_children,0.022490075
+13,num__no_of_adults,0.020863848
+14,cat__room_type_reserved_Room_Type 5,0.020182686
+15,num__no_of_previous_bookings_not_canceled,0.01935295
+16,cat__market_segment_type_Offline,0.018512141
+17,cat__type_of_meal_plan_Not Selected,0.018312056
+18,cat__room_type_reserved_Room_Type 2,0.013337277
+19,num__no_of_weekend_nights,0.012778766

@@ -1,0 +1,54 @@
+<mxfile host="app.diagrams.net" modified="2026-06-27" version="21.0">
+  <diagram id="dep5" name="Deployment">
+    <mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="900" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="t1" value="Deployment Architecture" style="text;html=1;strokeColor=none;fillColor=none;fontColor=#c0392b;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1"><mxGeometry x="200" y="14" width="440" height="24" as="geometry"/></mxCell>
+
+        <!-- Browser -->
+        <mxCell id="br" value="Browser&#xa;(End User)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="20" y="96" width="110" height="52" as="geometry"/></mxCell>
+
+        <!-- Vercel Platform (dashed swimlane) -->
+        <mxCell id="vercel" value="Vercel Platform" style="swimlane;startSize=24;fillColor=#fff8f7;strokeColor=#c0392b;strokeWidth=2;dashed=1;dashPattern=8 4;fontColor=#c0392b;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="158" y="58" width="255" height="180" as="geometry"/></mxCell>
+
+        <!-- React Frontend inside Vercel -->
+        <mxCell id="rf" value="React Frontend&#xa;port 443  (public — CDN / Edge)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=10;" vertex="1" parent="vercel"><mxGeometry x="28" y="38" width="200" height="68" as="geometry"/></mxCell>
+
+        <!-- Backend Server (solid swimlane) -->
+        <mxCell id="srv" value="Backend Server" style="swimlane;startSize=24;fillColor=#fef3f0;strokeColor=#922b21;strokeWidth=1.5;fontColor=#7b241c;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="458" y="58" width="370" height="360" as="geometry"/></mxCell>
+
+        <!-- FastAPI inside Backend -->
+        <mxCell id="fa" value="FastAPI Container&#xa;port 8000  (internal only — not public)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=10;" vertex="1" parent="srv"><mxGeometry x="20" y="34" width="330" height="68" as="geometry"/></mxCell>
+
+        <!-- Shared Volume inside Backend -->
+        <mxCell id="vol" value="Shared Volume&#xa;─────────────────&#xa;Processed Dataset&#xa;Saved Models (.pkl)&#xa;Generated Reports" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef9f9;strokeColor=#7b241c;fontColor=#2c2c2c;fontSize=10;" vertex="1" parent="srv"><mxGeometry x="20" y="162" width="330" height="150" as="geometry"/></mxCell>
+
+        <!-- Logs & Error Monitoring (outside, bottom) -->
+        <mxCell id="log" value="Logs &amp; Error Monitoring&#xa;──────────────────────────────────────────────────&#xa;Frontend errors  ·  API errors  ·  Failed predictions  ·  Report-generation errors" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef9f9;strokeColor=#7b241c;fontColor=#2c2c2c;fontSize=10;" vertex="1" parent="1"><mxGeometry x="158" y="480" width="670" height="76" as="geometry"/></mxCell>
+
+        <!-- Arrows -->
+
+        <!-- Browser → React Frontend (HTTPS) -->
+        <mxCell id="e1" value="HTTPS :443" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="br" target="rf" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- React Frontend → FastAPI (HTTPS REST API, cross-platform) -->
+        <mxCell id="e2" value="HTTPS — REST API calls" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="rf" target="fa" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- FastAPI → Shared Volume -->
+        <mxCell id="e3" value="reads / writes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#7b241c;fontSize=9;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="fa" target="vol" parent="srv"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- React Frontend → Logs (frontend errors) -->
+        <mxCell id="e4" value="frontend errors" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#7b241c;fontSize=9;exitX=0.5;exitY=1;entryX=0;entryY=0.5;" edge="1" source="rf" target="log" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Backend Server → Logs (API / prediction errors) -->
+        <mxCell id="e5" value="API &amp; prediction errors" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#7b241c;fontSize=9;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" edge="1" source="fa" target="log" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Notes -->
+        <mxCell id="note1" value="React Frontend served by Vercel CDN — the browser never contacts the FastAPI server directly" style="text;html=1;strokeColor=none;fillColor=none;fontColor=#888888;fontSize=9;align=center;" vertex="1" parent="1"><mxGeometry x="158" y="566" width="670" height="18" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

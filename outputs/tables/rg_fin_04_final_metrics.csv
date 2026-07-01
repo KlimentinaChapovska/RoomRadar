@@ -1,0 +1,5 @@
+,model,split,r2,mae,rmse
+0,DummyRegressor (raw mean),test,-0.0002,25.16,32.813
+1,"XGBoost (tuned, raw)",train,0.8936,7.184,10.717
+2,"XGBoost (tuned, raw)",val,0.7371,10.731,17.037
+3,"XGBoost (tuned, raw)",test,0.7551,10.46,16.237

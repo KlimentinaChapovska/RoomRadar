@@ -1,0 +1,226 @@
+flowchart TB
+
+    classDef red     fill:#c0392b,stroke:#7b241c,color:#fff,font-weight:bold
+    classDef darkred fill:#7b241c,stroke:#4a0e0e,color:#fff,font-weight:bold
+    classDef storage fill:#943126,stroke:#7b241c,color:#fff,font-weight:bold
+    classDef service fill:#b03a2e,stroke:#943126,color:#fff,font-weight:bold
+    classDef endpoint fill:#a93226,stroke:#7b241c,color:#fff,font-weight:bold
+    classDef deploy  fill:#641e16,stroke:#4a0e0e,color:#fff,font-weight:bold
+
+    %% ══════════════════════════════════════════
+    %% 1. DATA SOURCES
+    %% ══════════════════════════════════════════
+    subgraph SRC["① DATA SOURCES"]
+        direction LR
+        KAGGLE["Kaggle Hotel\nReservations Dataset\n(downloaded once, not live)"]
+        LCSV["Local Hotel\nReservations CSV"]
+        UCSV["User-Uploaded CSV\n(batch prediction)"]
+        MINPUT["Manual Reservation\nInput (Dashboard Form)"]
+    end
+
+    %% ══════════════════════════════════════════
+    %% 2. DATA STORAGE
+    %% ══════════════════════════════════════════
+    subgraph STORE["② DATA STORAGE"]
+        direction LR
+        SRAW["Raw Reservation\nData"]
+        SCLEAN["Cleaned and\nProcessed Data"]
+        SPIPE["Saved Preprocessing\nPipeline (.pkl)"]
+        SCLASS["Saved Classification\nModel (.pkl)"]
+        SREG["Saved Regression\nModel (.pkl)"]
+        SPRED["Generated Prediction\nResults and Reports"]
+    end
+
+    %% ══════════════════════════════════════════
+    %% 3. OFFLINE DATA AND MODEL PIPELINE
+    %% ══════════════════════════════════════════
+    subgraph PIPE["③ OFFLINE DATA AND MODEL PIPELINE"]
+        direction LR
+        PIN["Data\nIngestion"]
+        PVAL["Data\nValidation"]
+        PCLEAN["Data\nCleaning"]
+        PEDA["Exploratory\nData Analysis"]
+        PFEAT["Feature Engineering\nand Encoding"]
+        PSPLIT["Train / Test\nSplit"]
+        PTCLASS["Train Classification\nModels\ntarget: booking_status"]
+        PTREG["Train Regression\nModels\ntarget: avg_price_per_room"]
+        PECLASS["Evaluate and Compare\nClassification Models"]
+        PEREG["Evaluate and Compare\nRegression Models"]
+        PSAVE["Save Best Models and\nPreprocessing Pipeline"]
+
+        PIN --> PVAL --> PCLEAN --> PEDA --> PFEAT --> PSPLIT
+        PSPLIT --> PTCLASS --> PECLASS --> PSAVE
+        PSPLIT --> PTREG  --> PEREG  --> PSAVE
+    end
+
+    %% ══════════════════════════════════════════
+    %% 4. FRONTEND — Streamlit
+    %% ══════════════════════════════════════════
+    subgraph FRONT["④ FRONTEND — Streamlit Dashboard"]
+        direction TB
+        FBROWSER["Browser / User Interface"]
+        subgraph FPAGES["Dashboard Pages"]
+            direction LR
+            FP1["Executive\nOverview"]
+            FP2["Interactive Filters\nand Charts"]
+            FP3["Cancellation\nPredictor"]
+            FP4["Room-Price\nPredictor"]
+            FP5["What-If\nSimulator"]
+            FP6["Batch CSV\nUpload"]
+            FP7["Model Performance\nPage"]
+            FP8["Prediction\nExplanation"]
+            FP9["Report and CSV\nDownload"]
+        end
+        FBROWSER --> FPAGES
+    end
+
+    %% ══════════════════════════════════════════
+    %% 5. BACKEND API — FastAPI
+    %% ══════════════════════════════════════════
+    subgraph BAPI["⑤ BACKEND API — FastAPI"]
+        direction LR
+        AEP1["/summary\nDashboard KPIs and Charts"]
+        AEP2["/predict\nSingle Reservation"]
+        AEP3["/batch-predict\nUploaded CSV File"]
+        AEP4["/model-metrics\nModel Performance Results"]
+        AEP5["/report\nDownloadable Results"]
+    end
+
+    %% ══════════════════════════════════════════
+    %% 6. BACKEND SERVICES
+    %% ══════════════════════════════════════════
+    subgraph BSVC["⑥ BACKEND SERVICES"]
+        direction LR
+        SVCONN["API\nConnector"]
+        SVVAL["Input\nValidation"]
+        SVPREP["Data\nPreprocessing"]
+        SVEDA["EDA and\nSummary Service"]
+        SVCLASS["Classification\nService"]
+        SVREG["Regression\nService"]
+        SVEXP["Prediction\nExplanation Service"]
+        SVREC["Recommendation\nService"]
+        SVREP["Report and\nExport Service"]
+
+        SVCONN --> SVVAL --> SVPREP
+        SVPREP --> SVCLASS
+        SVPREP --> SVREG
+        SVCLASS -->|"run classification"| SVEXP
+        SVREG   -->|"run regression"| SVEXP
+        SVEXP   --> SVREC
+    end
+
+    %% ══════════════════════════════════════════
+    %% 7. USER ACTION FLOWS
+    %% ══════════════════════════════════════════
+    subgraph UFLOWS["⑦ USER ACTION FLOWS"]
+        direction TB
+
+        subgraph UF1["Open Dashboard"]
+            direction LR
+            UF1A["Browser"] -->|"load page"| UF1B["Streamlit"]
+            UF1B -->|"GET /summary"| UF1C["EDA and Summary Service"]
+            UF1C -->|"load processed data"| UF1D["Processed Dataset"]
+            UF1D -->|"JSON response"| UF1E["Streamlit Charts"]
+        end
+
+        subgraph UF2["Click Predict"]
+            direction LR
+            UF2A["Streamlit Form"] -->|"POST /predict"| UF2B["Input Validation"]
+            UF2B --> UF2C["Data Preprocessing"]
+            UF2C --> UF2D["Cancellation\nClassifier"]
+            UF2C --> UF2E["Room Price\nRegressor"]
+            UF2D --> UF2F["Prediction Explanation"]
+            UF2E --> UF2F
+            UF2F --> UF2G["Recommendation"]
+            UF2G -->|"JSON response"| UF2H["Results in Streamlit"]
+        end
+
+        subgraph UF3["What-If Simulator"]
+            direction LR
+            UF3A["Changed Input"] -->|"POST /predict"| UF3B["Run Both Models Again"]
+            UF3B --> UF3C["Compare Original\nand New Results"]
+            UF3C --> UF3D["Update Dashboard"]
+        end
+
+        subgraph UF4["Upload Batch CSV"]
+            direction LR
+            UF4A["CSV Upload"] -->|"POST /batch-predict"| UF4B["File Validation"]
+            UF4B --> UF4C["Data Preprocessing"]
+            UF4C --> UF4D["Classification and\nRegression Models"]
+            UF4D --> UF4E["Results Table"]
+            UF4E -->|"export report"| UF4F["Downloadable CSV\nor Report"]
+        end
+    end
+
+    %% ══════════════════════════════════════════
+    %% 8. DEPLOYMENT
+    %% ══════════════════════════════════════════
+    subgraph DEPL["⑧ DEPLOYMENT"]
+        direction TB
+        subgraph DCOMP["Docker Compose"]
+            direction LR
+            DSL["Streamlit\nDocker Container"]
+            DFA["FastAPI\nDocker Container"]
+            DVOL["Saved Models\nand Data Volume"]
+            DSL -->|"REST via internal Docker network"| DFA
+            DFA -->|"read models and data"| DVOL
+        end
+        DUBR["Browser\n(End User)"]
+        DCLOUD["Cloud or Server\nDeployment"]
+        DLOG["Application Logs\nand Error Monitoring"]
+        DUBR  -->|"HTTPS request"| DSL
+        DCOMP -->|"deploy container"| DCLOUD
+        DFA   -->|"write logs"| DLOG
+    end
+
+    %% ══════════════════════════════════════════
+    %% CROSS-SECTION CONNECTIONS
+    %% ══════════════════════════════════════════
+
+    %% Data source flow
+    KAGGLE  -->|"download dataset"| LCSV
+    LCSV    -->|"store raw data"| SRAW
+    SRAW    --> PIN
+    PCLEAN  -->|"store cleaned data"| SCLEAN
+    PSAVE   -->|"save pipeline"| SPIPE
+    PSAVE   -->|"save classifier"| SCLASS
+    PSAVE   -->|"save regressor"| SREG
+
+    %% Models loaded into services
+    SPIPE   -->|"load preprocessing"| SVPREP
+    SCLASS  -->|"load saved model"| SVCLASS
+    SREG    -->|"load saved model"| SVREG
+    SCLEAN  -->|"load processed data"| SVEDA
+
+    %% Frontend ↔ API
+    FPAGES  -->|"send REST request"| BAPI
+    BAPI    -->|"return JSON response"| FPAGES
+
+    %% API endpoints → services
+    AEP1 --> SVEDA
+    AEP2 --> SVCONN
+    AEP3 --> SVCONN
+    AEP4 --> SVEDA
+    AEP5 --> SVREP
+
+    %% Report export to storage
+    SVREP -->|"export report"| SPRED
+
+    %% User inputs enter API
+    UCSV   -->|"upload file"| AEP3
+    MINPUT -->|"submit form"| AEP2
+
+    %% ══════════════════════════════════════════
+    %% STYLES
+    %% ══════════════════════════════════════════
+    class KAGGLE,LCSV,UCSV,MINPUT red
+    class SRAW,SCLEAN,SPIPE,SCLASS,SREG,SPRED storage
+    class PIN,PVAL,PCLEAN,PEDA,PFEAT,PSPLIT,PTCLASS,PTREG,PECLASS,PEREG,PSAVE darkred
+    class FBROWSER,FP1,FP2,FP3,FP4,FP5,FP6,FP7,FP8,FP9 red
+    class AEP1,AEP2,AEP3,AEP4,AEP5 endpoint
+    class SVCONN,SVVAL,SVPREP,SVEDA,SVCLASS,SVREG,SVEXP,SVREC,SVREP service
+    class DSL,DFA,DVOL,DCLOUD,DUBR,DLOG deploy
+    class UF1A,UF1B,UF1C,UF1D,UF1E red
+    class UF2A,UF2B,UF2C,UF2D,UF2E,UF2F,UF2G,UF2H red
+    class UF3A,UF3B,UF3C,UF3D red
+    class UF4A,UF4B,UF4C,UF4D,UF4E,UF4F red

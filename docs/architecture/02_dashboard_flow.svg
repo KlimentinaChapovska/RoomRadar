@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="522" viewBox="0 0 540 522">
+<defs>
+  <marker id="ar"  markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#c0392b"/></marker>
+  <marker id="ar2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#7b241c"/></marker>
+  <marker id="ar3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#922b21"/></marker>
+</defs>
+<rect width="540" height="522" fill="white"/>
+<text x="270" y="22" text-anchor="middle" fill="#c0392b" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="bold">Open Dashboard Flow</text>
+<rect x="80" y="36" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+<text x="270" y="55" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">User opens Dashboard</text>
+<line x1="270" y1="76" x2="270" y2="104" stroke="#c0392b" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="275" y="94" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">load page</text>
+<rect x="80" y="104" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+<text x="270" y="123" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">React Frontend</text>
+<line x1="270" y1="144" x2="270" y2="172" stroke="#c0392b" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="275" y="162" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">GET /summary</text>
+<rect x="80" y="172" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+<text x="270" y="191" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">FastAPI  /summary</text>
+<line x1="270" y1="212" x2="270" y2="240" stroke="#922b21" stroke-width="1.5" marker-end="url(#ar3)"/>
+<text x="275" y="230" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">calls</text>
+<rect x="80" y="240" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#922b21" stroke-width="1.5"/>
+<text x="270" y="259" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">Analytics Service</text>
+<line x1="270" y1="280" x2="270" y2="308" stroke="#7b241c" stroke-width="1.5" marker-end="url(#ar2)"/>
+<text x="275" y="298" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">reads processed data</text>
+<rect x="80" y="308" width="380" height="40" rx="4" fill="#fef9f9" stroke="#7b241c" stroke-width="1.5"/>
+<text x="270" y="327" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">Processed Dataset</text>
+<line x1="270" y1="348" x2="270" y2="376" stroke="#7b241c" stroke-width="1.5" marker-end="url(#ar2)"/>
+<text x="275" y="366" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">returns data</text>
+<rect x="80" y="376" width="380" height="40" rx="4" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+<text x="270" y="395" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">FastAPI returns JSON</text>
+<line x1="270" y1="416" x2="270" y2="444" stroke="#c0392b" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="275" y="434" text-anchor="start" fill="#555" font-family="Arial,Helvetica,sans-serif" font-size="9">JSON response</text>
+<rect x="80" y="444" width="380" height="40" rx="4" fill="#fef0ee" stroke="#c0392b" stroke-width="1.5"/>
+<text x="270" y="463" text-anchor="middle" fill="#2c2c2c" font-family="Arial,Helvetica,sans-serif" font-size="11">React — KPIs, Filters &amp; Charts</text>
+</svg>

@@ -1,0 +1,17 @@
+,feature_name,derivation,rationale
+0,total_nights,no_of_weekend_nights + no_of_week_nights,Total length of stay. Avoids the collinearity between the two raw columns.
+1,total_guests,no_of_adults + no_of_children,Party size. Collapses two correlated columns.
+2,has_children,no_of_children > 0 → 0/1,Binary flag; families may have distinct booking behaviour.
+3,log_lead_time,log1p(lead_time),Heavily right-skewed raw value; log makes it near-normal for linear models.
+4,log_price,log1p(avg_price_per_room),Price is right-skewed with zero-price anomalies; log compresses extremes.
+5,price_is_zero,avg_price_per_room == 0 → 0/1,Explicit flag for complimentary/error rows — preserves signal without distorting log transform.
+6,is_weekend_stay,no_of_weekend_nights > 0 → 0/1,Weekend vs pure weekday trips may differ in cancellation risk.
+7,arrival_season,arrival_month → Spring/Summer/Autumn/Winter,Collapses 12 months into 4 seasonal categories for sparsity reduction.
+8,arrival_dow,Derived from arrival_year + arrival_month + arrival_date → day-of-week,Day of week may signal leisure vs business travel.
+9,has_parking,required_car_parking_space == 1 → 0/1,Alias for readability; same encoding.
+10,has_special_request,no_of_special_requests > 0 → 0/1,Binary: any request vs none. Guests with requests may be more committed.
+11,prior_cancel_rate,no_of_previous_cancellations / (no_of_previous_cancellations + no_of_previous_bookings_not_canceled + 1e-9),Guest-level historical cancel rate. Smoothed denominator avoids div/0.
+12,is_repeat_guest,repeated_guest (already 0/1),Kept as-is; renamed for clarity in feature set.
+13,meal_plan_encoded,target_encode(type_of_meal_plan) on train fold,Meal Plan 3 has only 5 rows — rare-category risk; target encoding handles it.
+14,room_type_encoded,target_encode(room_type_reserved) on train fold,Room_Type 3 has only 7 rows; ordinal or target encoding preferred.
+15,market_seg_encoded,target_encode(market_segment_type) on train fold,Aviation (125 rows) is sparse; target encoding is safer than one-hot.

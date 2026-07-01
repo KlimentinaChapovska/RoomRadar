@@ -1,0 +1,12 @@
+,decision,business_reasoning,recommendation
+0,Drop Booking_ID,Sequential identifier; encodes no predictive signal and would leak row ordering into tree splits.,APPLY — always drop before training.
+1,Keep zero-adults rows (n=139),"Operationally invalid, but we do NOT automatically remove them. Flag with is_zero_adults=1 and let the model learn their pattern. Revisit if model audit shows noise.","FLAG, do not drop."
+2,Keep zero-price rows (n=545) for cancellation model,May represent complimentary stays. Add price_is_zero flag so the model can distinguish them from paid bookings. Log-transform will handle the rest.,FLAG with price_is_zero; keep rows.
+3,Exclude zero-price rows from price regression model,Predicting a $0 price has no operational meaning. These rows corrupt the regression target.,DROP from price model only.
+4,"Keep IQR price outliers (n=1,069, max=$540)",High-end prices are real. Removing them would bias the model toward economy bookings. Apply log1p transform instead — compresses the tail without information loss.,KEEP; use log1p(price).
+5,Keep zero-night bookings (n=78),Possibly day-use or same-arrival/departure records. Flag with is_zero_nights=1. Investigate further before dropping.,"FLAG, do not drop."
+6,Keep lead_time > 365 rows (n=102),"Long-advance bookings are genuine (events, weddings). Apply log1p transform.",KEEP; use log1p(lead_time).
+7,Review calendar-invalid dates,Dates like Feb 30 cannot exist. Drop or correct after manual inspection.,DROP after validation — count TBD in this run.
+8,Keep children > 5 rows (n=3),Only 3 rows; no material impact. Keep to avoid artificial filtering.,KEEP.
+9,"Rare category handling (Room_Type 3 n=7, Meal Plan 3 n=5)",One-hot encoding would create near-zero-variance columns. Use target encoding computed on training fold only — never on validation/test.,TARGET ENCODE in pipeline.
+10,Stratify train/val/test splits,32.8% cancellation rate is a moderate imbalance. Stratified splits preserve the ratio. Evaluate class-weighted loss or SMOTE only after baseline.,STRATIFY splits; evaluate class weights.

@@ -1,0 +1,36 @@
+<mxfile host="app.diagrams.net" modified="2026-06-27" version="21.0">
+  <diagram id="flow4" name="CSV Upload and Report Flow">
+    <mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="t1" value="CSV Upload &amp; Report Flow" style="text;html=1;strokeColor=none;fillColor=none;fontColor=#c0392b;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1"><mxGeometry x="70" y="14" width="380" height="24" as="geometry"/></mxCell>
+
+        <mxCell id="b1"  value="User selects CSV file"                  style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="50"  width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="brf" value="React Frontend"                         style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="130" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b2"  value="FastAPI  /batch-predict"                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="210" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b3"  value="File Validation"                        style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="290" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b4"  value="Data Preprocessing"                     style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="370" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b5"  value="Classification &amp; Regression Models" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="450" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b6"  value="Results Table"                          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="530" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b7"  value="Save Prediction Results"                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef9f9;strokeColor=#7b241c;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="610" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b8"  value="FastAPI  /report"                       style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="710" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b9"  value="Report Generation Service"              style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdf2f0;strokeColor=#922b21;fontColor=#2c2c2c;fontSize=11;" vertex="1" parent="1"><mxGeometry x="110" y="790" width="300" height="40" as="geometry"/></mxCell>
+        <mxCell id="b10" value="Downloadable CSV or PDF Report"         style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef0ee;strokeColor=#c0392b;fontColor=#2c2c2c;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="110" y="870" width="300" height="40" as="geometry"/></mxCell>
+
+        <mxCell id="e0" value=""                                   style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;" edge="1" source="b1"  target="brf" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e1" value="POST /batch-predict"                style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;" edge="1" source="brf" target="b2"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="calls"                              style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;" edge="1" source="b2"  target="b3"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="preprocesses rows"                  style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#922b21;fontSize=9;" edge="1" source="b3"  target="b4"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="runs both models"                   style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#922b21;fontSize=9;" edge="1" source="b4"  target="b5"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="creates"                            style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#922b21;fontSize=9;" edge="1" source="b5"  target="b6"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" value="saves to storage"                   style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#7b241c;fontSize=9;" edge="1" source="b6"  target="b7"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" value="User clicks Download → GET /report" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;" edge="1" source="b7"  target="b8"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" value="reads saved results → generates"    style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#922b21;fontSize=9;" edge="1" source="b8"  target="b9"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" value="returns file"                       style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c0392b;fontSize=9;" edge="1" source="b9"  target="b10" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
