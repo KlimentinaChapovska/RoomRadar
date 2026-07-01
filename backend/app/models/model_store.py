@@ -9,6 +9,7 @@ exactly that.
 import json
 import sys
 import time
+import types
 from pathlib import Path
 from typing import Optional
 
@@ -17,10 +18,20 @@ import joblib
 ROOT = Path(__file__).resolve().parents[3]  # backend/app/models/ → FinalProject/
 sys.path.insert(0, str(ROOT / "ml" / "scripts"))
 
-# Register custom transformers before any joblib.load call
+# Import slim transformer classes (no matplotlib/seaborn dependency)
 from calibration_pipeline import CalibratedPipeline  # noqa: F401
-from transformers import FeatureEngineer              # noqa: F401
-from transformers import RegFeatureEngineer           # noqa: F401
+from transformers import FeatureEngineer, RegFeatureEngineer  # noqa: F401
+
+# The pickle files store class paths as train_classification.FeatureEngineer and
+# train_regression.RegFeatureEngineer. Inject stubs so joblib deserialization
+# resolves those paths to the slim classes without importing matplotlib.
+_clf_stub = types.ModuleType("train_classification")
+_clf_stub.FeatureEngineer = FeatureEngineer
+sys.modules.setdefault("train_classification", _clf_stub)
+
+_reg_stub = types.ModuleType("train_regression")
+_reg_stub.RegFeatureEngineer = RegFeatureEngineer
+sys.modules.setdefault("train_regression", _reg_stub)
 
 from app.utils.logger import get_logger
 
