@@ -1,0 +1,54 @@
+---
+title: "AI Workflow Reflection"
+subtitle: "RoomRadar — MADA Final Project"
+author: "Klimentina Chapovska"
+date: today
+format:
+  html:
+    toc: false
+    theme: cosmo
+    embed-resources: true
+---
+
+## Tools Used
+
+The primary AI tool used throughout this project was **Claude Code** (Anthropic), accessed via the desktop application with the `claude-sonnet-4-6` model. The following MCP (Model Context Protocol) servers were active:
+
+| Server | Purpose |
+|---|---|
+| **Playwright MCP** | Browser automation for visual QA — navigating the live app, checking layouts at different viewport sizes, verifying form behaviour and result rendering |
+| **GitHub MCP** | Pushing commits and managing the remote repository at `KlimentinaChapovska/RoomRadar` |
+| **Vercel MCP** | Linking the frontend directory to the Vercel project, adding environment variables (`VITE_API_URL`), and triggering production deployments |
+| **Filesystem MCP** | Reading and editing project files without leaving the Claude Code interface |
+| **Context7 MCP** | Fetching up-to-date documentation for FastAPI, React Router, Vite, and Vitest when library-specific behaviour needed verification |
+
+## Claude Code Features Used
+
+- **File editing** — Edit, Write, and Read tools were used for every code change, from the FastAPI schema through to React components and Quarto documents.
+- **Bash / PowerShell execution** — Running tests (`vitest run`), builds (`vite build`), git operations, and backend startup checks all happened inline without leaving the session.
+- **Multi-step task tracking** — Complex sequences (e.g., replacing manual night inputs with check-in/check-out date pickers, including new tests and a build verification) were carried out as single coherent tasks rather than isolated edits.
+- **Web fetch** — Used to query the live Render health endpoint (`/health`, `/ready`) to diagnose model-loading failures without needing to open a browser.
+- **Memory system** — Project-level memory files captured architecture decisions, dataset facts, and approved tech stack choices so that context was preserved across sessions without re-explaining the project each time.
+
+## How AI Output Was Verified
+
+AI output was never accepted on trust alone. Verification took several forms:
+
+1. **Automated tests** — Every logic change to the prediction form, date helpers, and validation was accompanied by Vitest unit tests run immediately after the edit. The test suite grew to 47 tests across 3 files. A failing test caught the AI's output before it reached production.
+2. **Production build** — `vite build` was run after every frontend change. TypeScript/JSX errors and missing imports surfaced immediately.
+3. **Visual QA in browser** — Playwright MCP was used to open the running app and verify that UI changes (form layout, error messages, night breakdowns, gauge rendering) looked correct at multiple viewport sizes.
+4. **Backend health endpoint** — After each Render deployment attempt, the `/health` endpoint was fetched directly to confirm `models_loaded: true` before treating the deploy as successful.
+5. **Manual reading of diffs** — Before committing, the exact file diff was reviewed. When the AI changed more than expected (e.g., touching unrelated CSS), the extra changes were assessed and reverted if unnecessary.
+
+One example of catching an AI error: the AI initially imported `FeatureEngineer` from a new `transformers.py` module, which correctly removed the matplotlib dependency at server startup. However, `joblib.load()` still tried to resolve the class from its original pickle path (`train_classification.FeatureEngineer`). This silent failure was caught by querying the live health endpoint and seeing `models_loaded: false`, not by any test. The fix — injecting stub modules into `sys.modules` before any `joblib.load()` call — was verified by watching the Render deploy log for the `All models loaded successfully` message.
+
+## Cost and Effort
+
+| Category | Estimate |
+|---|---|
+| Total Claude Code session time | ~12 hours across 3 days |
+| Approximate token cost | Moderate (several long multi-file sessions) |
+| Human decisions that AI could not make | Threshold value (0.34) and risk band boundaries were derived from data; deployment platform choices (Render free tier, Vercel) were made manually |
+| Iterations to get deployment working | 4 Render deploy attempts before models loaded correctly |
+
+The AI substantially accelerated boilerplate-heavy work: setting up the FastAPI schema, writing the React component tree, configuring `render.yaml`, and generating the initial test suite. Work that required domain judgement — which features to engineer, whether to use raw vs log1p price target, how to define risk bands — was done by hand and the AI was used to implement the decision, not make it.

@@ -1,7 +1,7 @@
 ---
 title: "RoomRadar: Hotel Cancellation & Room Price Prediction"
-subtitle: "Exploratory Data Analysis & Data Audit"
-author: "MADA Final Project"
+subtitle: "Full Phase-2 Analysis — EDA, Classification, Regression, Calibration & Production API"
+author: "Klimentina Chapovska"
 date: today
 format:
   html:
@@ -814,11 +814,15 @@ print(f"Test F1    : {META['test_metrics']['f1']}")
 The pipeline can be loaded and used for inference with:
 
 ```python
-import joblib, pandas as pd, sys
+import joblib, sys, types
 from pathlib import Path
-sys.path.insert(0, "ml/scripts")   # for CalibratedPipeline + FeatureEngineer
+sys.path.insert(0, "ml/scripts")
 from calibration_pipeline import CalibratedPipeline
-from train_classification import FeatureEngineer
+from transformers import FeatureEngineer, RegFeatureEngineer
+
+# Register stub modules so joblib can deserialise pickles by original class paths
+_s = types.ModuleType("train_classification"); _s.FeatureEngineer = FeatureEngineer
+sys.modules.setdefault("train_classification", _s)
 
 model = joblib.load("models/cancellation_model.pkl")
 prob  = model.predict_proba(booking_df)[0, 1]  # calibrated cancellation probability
@@ -1176,10 +1180,13 @@ print(f"Dummy val RMSE        : {REG_META['dummy_baseline']['val_rmse']} (arithm
 The pipeline can be loaded and used for inference with:
 
 ```python
-import joblib, pandas as pd, sys
+import joblib, sys, types
 from pathlib import Path
 sys.path.insert(0, "ml/scripts")
-from train_regression import RegFeatureEngineer  # registers class for unpickling
+from transformers import RegFeatureEngineer
+
+_s = types.ModuleType("train_regression"); _s.RegFeatureEngineer = RegFeatureEngineer
+sys.modules.setdefault("train_regression", _s)
 
 model = joblib.load("models/room_price_model.pkl")
 price = float(model.predict(booking_df)[0])  # price in original units (no back-transform needed)
@@ -1194,13 +1201,13 @@ for i, lim in enumerate(REG_META["limitations"], 1):
 
 ---
 
-# Next Steps
+# Project Status
 
-- [x] **Step 2** — EDA, data audit, cleaning decisions
-- [x] **Step 3** — Classification pipeline: 4 models, XGBoost tuned, AUC 0.953
-- [x] **Step 3a** — Calibration, threshold selection, risk bands, production model saved
-- [x] **Step 3b** — Regression pipeline: 4 models, XGBoost tuned, test R² 0.755, RMSE 16.24
-- [x] **Step 3c** — Regression finalized: raw target confirmed, features verified, production model saved
-- [ ] **Step 4** — Wire `/predict` endpoint to trained models
-- [ ] **Step 5** — Build React dashboard
-- [ ] **Step 6** — Deploy to Vercel
+All phases complete:
+
+- [x] **EDA & data audit** — cleaning decisions documented, 37 invalid dates removed, zero-price rows flagged
+- [x] **Classification pipeline** — 4 models, XGBoost tuned (AUC 0.953), probability calibrated, risk bands defined
+- [x] **Regression pipeline** — 4 models, XGBoost tuned (R² 0.755, RMSE 16.24 price units)
+- [x] **Production API** — FastAPI `/predict` endpoint, both models served in a single request
+- [x] **React dashboard** — interactive EDA charts, model performance page, live prediction form
+- [x] **Deployment** — frontend live at <https://roomradar-henna.vercel.app>, backend on Render

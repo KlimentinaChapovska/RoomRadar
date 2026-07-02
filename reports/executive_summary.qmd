@@ -1,0 +1,51 @@
+---
+title: "Executive Summary"
+subtitle: "RoomRadar — Hotel Cancellation & Room Price Prediction"
+author: "Klimentina Chapovska"
+date: today
+format:
+  html:
+    toc: false
+    theme: cosmo
+    embed-resources: true
+    mainfont: "Georgia"
+---
+
+## The Question
+
+Hotels face a fundamental revenue problem: a booking confirmed months in advance may never materialise. When a guest cancels at the last minute, the room often goes unsold. At the same time, pricing a room incorrectly — too high or too low — leaves money on the table regardless of whether the booking holds.
+
+This project asked: **can machine learning predict, at the time of booking, which reservations are likely to cancel and what the room should cost?**
+
+## What We Found
+
+Using 36,275 hotel reservations from 2017–2018, two separate models were trained and deployed.
+
+**Cancellation risk** is highly predictable. An XGBoost model — trained on booking characteristics available at the time of reservation — correctly ranks a cancelled booking above a non-cancelled one **95.3% of the time** (ROC-AUC). In plain terms: if you showed the model two bookings and asked which one will cancel, it gets the answer right 19 times out of 20.
+
+The model assigns every booking to one of three risk bands:
+
+- **Low risk** (< 30% probability) — 63% of bookings, only 7% actually cancel. No action needed.
+- **Medium risk** (30–60%) — 8% of bookings; pre-arrival follow-up recommended.
+- **High risk** (> 60%) — 29% of bookings, and **87% of those actually do cancel**. This group warrants immediate action.
+
+The clearest signals of cancellation are: how far in advance the booking was made (the longer, the riskier), whether the guest made any special requests (guests who customise rarely cancel), and whether the guest has stayed before (repeat guests cancel at 1.7% vs 34% for new guests).
+
+**Room price** is moderately predictable. A second XGBoost model explains **75.5% of price variation** across bookings, with a typical error of about 10 price units. The strongest price drivers are room type, party size, market segment, and arrival season — all consistent with standard hotel pricing theory.
+
+## What We Recommend
+
+**For revenue managers using the tool:**
+
+1. **Require a deposit or non-refundable rate for High-risk bookings** — the model's High band is accurate enough (87% actual cancellation) to justify a firmer cancellation policy.
+2. **Prompt guests to add special requests during booking** — this alone predicts lower cancellation and can be implemented immediately without any model change.
+3. **Invest in repeat-guest programmes** — loyal guests cancel at a rate 20 times lower than new guests. The loyalty ROI case is straightforward.
+4. **Use the predicted price as a sanity check**, not a price-setter — the model flags when the current room rate is significantly above or below the market expectation for a booking with those characteristics.
+
+**Before using predictions operationally:**
+
+The models were trained on 2017–2018 data from a single hotel. They should be validated on your own property's data before being used to make decisions that affect guests. Model performance can degrade as booking patterns change over time, and annual retraining is recommended.
+
+## The Live Application
+
+A working application is available at **[roomradar-henna.vercel.app](https://roomradar-henna.vercel.app)**. It provides a live prediction form, an interactive data dashboard, and model performance details — all in a browser, with no installation required.

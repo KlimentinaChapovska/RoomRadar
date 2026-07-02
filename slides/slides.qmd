@@ -1,23 +1,214 @@
 ---
 title: "RoomRadar"
-subtitle: "Hotel Cancellation & Room Price Prediction"
-author: "MADA Final Project"
+subtitle: "Predicting Hotel Cancellations & Room Prices with Machine Learning"
+author: "Klimentina Chapovska"
 date: today
 format:
   revealjs:
     theme: simple
     slide-number: true
     transition: fade
+    footer: "RoomRadar — MADA Final Project"
+    logo: ""
+    highlight-style: github
+    code-block-height: 400px
 ---
 
-## Introduction
+## The Problem
 
-<!-- TODO: fill in after report is drafted -->
+Hotels lose significant revenue every year to **last-minute cancellations**.
 
-## Data
+> A booking on the books is not the same as a guest at the door.
 
-## Methods
+**Two questions every revenue manager needs answered:**
 
-## Results
+1. Will this booking cancel before arrival?
+2. What is the right price for this room?
 
-## Conclusions
+Answering them early allows targeted action — deposits, incentives, outreach — before it's too late.
+
+---
+
+## The Data
+
+**Hotel Reservations Dataset** — 36,275 bookings from an Indian hotel group (2017–2018)
+
+| | |
+|---|---|
+| Rows | 36,275 |
+| Features | 19 |
+| Missing values | 0 |
+| Cancellation rate | **32.8%** |
+| Date range | 2017 – 2018 |
+
+**No missing values. No duplicates.** One moderate challenge: class imbalance (2.1:1 ratio of kept to cancelled).
+
+---
+
+## What the Data Tells Us
+
+**Three signals dominate cancellation risk:**
+
+:::: {.columns}
+
+::: {.column width="33%"}
+**Lead time**
+Bookings 3+ months ahead cancel at >50% in some segments.
+Spearman |r| = **0.42**
+:::
+
+::: {.column width="33%"}
+**Special requests**
+0 requests → 43% cancel rate.
+3+ requests → **0% cancel rate.**
+Spearman |r| = 0.26
+:::
+
+::: {.column width="33%"}
+**Repeat guests**
+New guests cancel at 33.6%.
+Repeat guests cancel at **1.7%** — a 20× difference.
+:::
+
+::::
+
+---
+
+## What the Data Tells Us (cont.)
+
+**Booking channel matters enormously:**
+
+| Market Segment | Cancellation Rate |
+|---|---|
+| Online | **36.5%** |
+| Offline | 23.8% |
+| Corporate | **10.9%** |
+| Complementary | 0% |
+
+Online bookings are the hotel's biggest source of revenue *and* cancellations. Corporate contracts are far stickier.
+
+---
+
+## Approach: Two ML Pipelines
+
+```
+Raw data (36,275 rows)
+        │
+        ▼
+  Data cleaning ──► Drop 37 invalid dates
+        │           Drop 545 zero-price rows (regression only)
+        ▼
+Feature engineering (inside sklearn Pipeline — no leakage)
+  total_nights · log_lead_time · prior_cancel_rate · arrival_season · ...
+        │
+        ├──► Classification pipeline ──► Cancellation probability
+        │
+        └──► Regression pipeline    ──► Predicted room price
+```
+
+Both models use **XGBoost** tuned with 5-fold cross-validation (30 random search iterations).
+
+---
+
+## Cancellation Model Results
+
+Stratified 60/20/20 split, `random_state=42`.
+
+| Model | Test AUC | Test F1 |
+|---|---|---|
+| Dummy | 0.500 | 0.000 |
+| Logistic Regression | 0.863 | 0.696 |
+| Decision Tree | 0.876 | 0.795 |
+| **XGBoost (tuned)** | **0.953** | **0.827** |
+
+**Probability calibration** (isotonic regression) applied post-hoc:
+Brier score 0.084 → **0.079**.
+
+**Decision threshold** selected at **0.34** (F1-optimal on validation set, never on test).
+
+---
+
+## Risk Bands
+
+Three actionable tiers derived from the calibrated probability:
+
+| Band | Probability | % of bookings | Actual cancel rate |
+|---|---|---|---|
+| Low | < 30% | 63% | 6.6% |
+| Medium | 30–60% | 8% | 39.9% |
+| High | ≥ 60% | 29% | **87.3%** |
+
+The **High band** flags 29% of bookings and is correct 87% of the time — a very reliable signal for operations teams.
+
+---
+
+## Price Prediction Results
+
+Zero-price rows excluded (n = 545). Raw target outperforms log1p for tuned XGBoost.
+
+| Model | Test R² | Test RMSE |
+|---|---|---|
+| Dummy (mean) | −0.00 | 32.81 pu |
+| Ridge | 0.50 | 23.18 pu |
+| Decision Tree (d=12) | 0.61 | 20.58 pu |
+| **XGBoost (tuned)** | **0.755** | **16.24 pu** |
+
+The model explains **75.5% of price variance** and is off by ~10 price units on average.
+
+Top price drivers: room type, party size, market segment, arrival season, meal plan.
+
+---
+
+## The Live Application
+
+**RoomRadar** — deployed React + FastAPI app
+
+🔗 [roomradar-henna.vercel.app](https://roomradar-henna.vercel.app)
+
+**Three sections:**
+
+- **Predict** — enter booking details, receive calibrated cancellation probability, risk band, predicted price, and business recommendations
+- **Dashboard** — interactive EDA charts: segment trends, seasonality, lead-time risk, price distributions
+- **Performance** — model leaderboards, ROC curves, confusion matrices, feature importances
+
+---
+
+## Limitations
+
+- **Data vintage** — 2017–2018 data from a single (unidentified) hotel. Results may not transfer to other properties or time periods.
+- **Currency** — prices are in unspecified units; the dataset uses "$" notation but currency is unverified.
+- **Modest overfitting** — train→val F1 gap of 0.10 for the cancellation model. Val→test gap is 0.005, confirming the gap is in train fit, not generalisation.
+- **Unexplained variance** — R² 0.755 leaves 24.5% of price variance unexplained (promotions, loyalty pricing, competitor rates not in data).
+- **No fairness analysis** — protected attributes were not examined. Historical patterns may encode past management decisions.
+
+---
+
+## Recommendations
+
+**For the hotel:**
+
+1. **Long lead-time + online channel** → require partial deposit or non-refundable rate
+2. **Encourage special requests at booking** — guests who customise are 43% less likely to cancel
+3. **Invest in repeat-guest programmes** — 20× lower cancellation rate; strong ROI case
+4. **Flag High-band bookings 2–4 weeks before arrival** for proactive outreach
+
+**For the model:**
+
+- Retrain annually with fresh data
+- Validate on the property's own booking history before operational use
+- Consider fairness audit before any guest-facing deployment
+
+---
+
+## Summary
+
+| | |
+|---|---|
+| Dataset | 36,275 hotel bookings, 19 features, no missing values |
+| Cancellation AUC | **0.953** (XGBoost + isotonic calibration) |
+| Price R² | **0.755** (XGBoost on raw target) |
+| Strongest signal | Lead time (|r| = 0.42) |
+| Biggest actionable gap | Online vs Corporate cancel rate (36.5% vs 10.9%) |
+| Live app | [roomradar-henna.vercel.app](https://roomradar-henna.vercel.app) |
+
+> With a calibrated probability and a risk band on every booking, revenue managers can act early — before cancellations happen.
